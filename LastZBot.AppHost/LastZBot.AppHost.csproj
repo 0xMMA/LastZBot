@@ -1,0 +1,22 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.0">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>d8479502-4e6c-4448-ae51-a5bcf461aeb4</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LastZBot.ApiService\LastZBot.ApiService.csproj" />
+    <ProjectReference Include="..\LastZBot.Web\LastZBot.Web.csproj" />
+    <ProjectReference Include="..\LastZBot.BotService\LastZBot.BotService.csproj" />
+    <ProjectReference Include="..\LastZBot.VisionService\LastZBot.VisionService.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.0.1" />
+  </ItemGroup>
+
+</Project>

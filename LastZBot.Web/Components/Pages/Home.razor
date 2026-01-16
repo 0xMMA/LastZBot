@@ -1,0 +1,260 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components
+@inject VisionApiClient VisionApi
+
+<PageTitle>Last Z Bot - Dashboard</PageTitle>
+
+@code {
+    private string? screenshotData;
+    private string? errorMessage;
+    private bool isCapturing = false;
+    private bool isConnected = false;
+    private string? deviceSerial;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckConnectionStatus();
+    }
+
+    private async Task CheckConnectionStatus()
+    {
+        var status = await VisionApi.GetStatusAsync();
+        if (status != null)
+        {
+            isConnected = status.Connected;
+            deviceSerial = status.Device;
+        }
+    }
+
+    private async Task ConnectToDevice()
+    {
+        errorMessage = null;
+        var connected = await VisionApi.ConnectAsync();
+        if (connected)
+        {
+            await CheckConnectionStatus();
+        }
+        else
+        {
+            errorMessage = "Failed to connect to device. Is BlueStacks running?";
+        }
+    }
+
+    private async Task CaptureScreenshot()
+    {
+        errorMessage = null;
+        isCapturing = true;
+        StateHasChanged();
+
+        try
+        {
+            if (!isConnected)
+            {
+                await ConnectToDevice();
+            }
+
+            var imageData = await VisionApi.CaptureScreenshotAsync();
+            if (!string.IsNullOrEmpty(imageData))
+            {
+                screenshotData = imageData;
+            }
+            else
+            {
+                errorMessage = "Failed to capture screenshot";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isCapturing = false;
+            StateHasChanged();
+        }
+    }
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Last Z Bot Dashboard</h1>
+            <p class="text-muted">Monitor and control your Android automation bot</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Android View</h5>
+                    <div>
+                        @if (!isConnected)
+                        {
+                            <button class="btn btn-sm btn-success me-2" @onclick="ConnectToDevice">
+                                Connect
+                            </button>
+                        }
+                        <button class="btn btn-sm btn-outline-primary" @onclick="CaptureScreenshot" disabled="@isCapturing">
+                            @if (isCapturing)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            Capture Screenshot
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body text-center" style="min-height: 400px; background: #1a1a2e;">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger m-3">@errorMessage</div>
+                    }
+                    @if (!string.IsNullOrEmpty(screenshotData))
+                    {
+                        <img src="@screenshotData" alt="Android Screenshot" class="img-fluid" style="max-height: 500px;" />
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column justify-content-center align-items-center h-100" style="min-height: 400px; color: #6c757d;">
+                            <div style="font-size: 4rem;">📱</div>
+                            <p class="mt-3">BlueStacks Display</p>
+                            <small>Click "Capture Screenshot" to view current screen</small>
+                            <small class="text-muted mt-2">
+                                @if (isConnected)
+                                {
+                                    <span class="text-success">Connected: @deviceSerial</span>
+                                }
+                                else
+                                {
+                                    <span>ADB: 127.0.0.1:5605 (Not connected)</span>
+                                }
+                            </small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Connection Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>ADB:</strong> 
+                        @if (isConnected)
+                        {
+                            <span class="badge bg-success">Connected</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning">Disconnected</span>
+                        }
+                    </div>
+                    <div class="mb-2">
+                        <strong>Device:</strong> 
+                        <span class="text-muted">@(deviceSerial ?? "None")</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Target:</strong> 
+                        <span class="text-muted">127.0.0.1:5605</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-primary btn-sm w-100 mb-2">Claim Daily Rewards</button>
+                    <button class="btn btn-secondary btn-sm w-100 mb-2">Complete Daily Tasks</button>
+                    <button class="btn btn-info btn-sm w-100 mb-2">Alliance Help</button>
+                    <button class="btn btn-warning btn-sm w-100">Check Science Queue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Success Rates (Last 24h)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>Daily Rewards</span>
+                            <span class="badge bg-success">100%</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>Daily Tasks</span>
+                            <span class="badge bg-success">95%</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 95%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>Alliance Help</span>
+                            <span class="badge bg-warning">85%</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between">
+                            <span>Science Queue</span>
+                            <span class="badge bg-success">98%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 98%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Daily Rewards</strong>
+                                <br>
+                                <small class="text-muted">2 minutes ago</small>
+                            </div>
+                            <span class="badge bg-success rounded-pill">Success</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Alliance Help</strong>
+                                <br>
+                                <small class="text-muted">15 minutes ago</small>
+                            </div>
+                            <span class="badge bg-success rounded-pill">Success</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Science Queue</strong>
+                                <br>
+                                <small class="text-muted">1 hour ago</small>
+                            </div>
+                            <span class="badge bg-success rounded-pill">Success</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

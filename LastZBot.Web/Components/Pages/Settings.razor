@@ -1,0 +1,105 @@
+@page "/settings"
+
+<PageTitle>Settings</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Settings</h1>
+            <p class="text-muted">Configure bot schedules and preferences</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Schedule Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Daily Rewards</label>
+                        <input type="time" class="form-control" value="06:00" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Daily Tasks</label>
+                        <input type="time" class="form-control" value="06:05" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Alliance Help</label>
+                        <input type="text" class="form-control" value="06:15, 12:00, 18:00" />
+                        <small class="form-text text-muted">Comma-separated times</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Science Check</label>
+                        <select class="form-select">
+                            <option>Every 4 hours</option>
+                            <option>Every 2 hours</option>
+                            <option>Every 6 hours</option>
+                            <option>Every 8 hours</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary">Save Schedule</button>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Science Priority</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Priority List</label>
+                        <textarea class="form-control" rows="5">Speed Research
+Combat Research
+Resource Production</textarea>
+                        <small class="form-text text-muted">One per line, in order of priority</small>
+                    </div>
+                    <button class="btn btn-primary">Save Priority</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Alerts</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Consecutive Failures Threshold</label>
+                        <input type="number" class="form-control" value="5" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Alert Channel</label>
+                        <select class="form-select">
+                            <option>Telegram</option>
+                            <option>Webhook</option>
+                            <option>Email</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary">Save Alerts</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Human Coordination</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" checked />
+                            <label class="form-check-label">Enable Human Coordination</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Yield Timeout (seconds)</label>
+                        <input type="number" class="form-control" value="30" />
+                    </div>
+                    <button class="btn btn-primary">Save Coordination</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

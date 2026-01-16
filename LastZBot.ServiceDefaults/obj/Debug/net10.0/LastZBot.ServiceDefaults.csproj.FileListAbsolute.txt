@@ -1,0 +1,12 @@
+C:\Source\LastZBot\LastZBot.ServiceDefaults\bin\Debug\net10.0\LastZBot.ServiceDefaults.deps.json
+C:\Source\LastZBot\LastZBot.ServiceDefaults\bin\Debug\net10.0\LastZBot.ServiceDefaults.dll
+C:\Source\LastZBot\LastZBot.ServiceDefaults\bin\Debug\net10.0\LastZBot.ServiceDefaults.pdb
+C:\Source\LastZBot\LastZBot.ServiceDefaults\obj\Debug\net10.0\LastZBot.ServiceDefaults.csproj.AssemblyReference.cache
+C:\Source\LastZBot\LastZBot.ServiceDefaults\obj\Debug\net10.0\LastZBot.ServiceDefaults.GeneratedMSBuildEditorConfig.editorconfig
+C:\Source\LastZBot\LastZBot.ServiceDefaults\obj\Debug\net10.0\LastZBot.ServiceDefaults.AssemblyInfoInputs.cache
+C:\Source\LastZBot\LastZBot.ServiceDefaults\obj\Debug\net10.0\LastZBot.ServiceDefaults.AssemblyInfo.cs
+C:\Source\LastZBot\LastZBot.ServiceDefaults\obj\Debug\net10.0\LastZBot.ServiceDefaults.csproj.CoreCompileInputs.cache
+C:\Source\LastZBot\LastZBot.ServiceDefaults\obj\Debug\net10.0\LastZBot.ServiceDefaults.dll
+C:\Source\LastZBot\LastZBot.ServiceDefaults\obj\Debug\net10.0\refint\LastZBot.ServiceDefaults.dll
+C:\Source\LastZBot\LastZBot.ServiceDefaults\obj\Debug\net10.0\LastZBot.ServiceDefaults.pdb
+C:\Source\LastZBot\LastZBot.ServiceDefaults\obj\Debug\net10.0\ref\LastZBot.ServiceDefaults.dll

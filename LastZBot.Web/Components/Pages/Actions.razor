@@ -1,0 +1,77 @@
+@page "/actions"
+
+<PageTitle>Action History</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Action History</h1>
+            <p class="text-muted">View execution logs and performance metrics</p>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <select class="form-select">
+                <option>All Actions</option>
+                <option>Daily Rewards</option>
+                <option>Daily Tasks</option>
+                <option>Alliance Help</option>
+                <option>Science Queue</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select">
+                <option>All Status</option>
+                <option>Success</option>
+                <option>Failed</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <input type="date" class="form-control" />
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Action</th>
+                        <th>Method</th>
+                        <th>Duration</th>
+                        <th>Cost</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>2026-01-09 06:00:15</td>
+                        <td>Daily Rewards</td>
+                        <td>Cached Coordinates</td>
+                        <td>245ms</td>
+                        <td>$0.0000</td>
+                        <td><span class="badge bg-success">Success</span></td>
+                    </tr>
+                    <tr>
+                        <td>2026-01-09 06:05:32</td>
+                        <td>Daily Tasks</td>
+                        <td>Template Matching</td>
+                        <td>1,234ms</td>
+                        <td>$0.0001</td>
+                        <td><span class="badge bg-success">Success</span></td>
+                    </tr>
+                    <tr>
+                        <td>2026-01-09 06:15:08</td>
+                        <td>Alliance Help</td>
+                        <td>Cached Coordinates</td>
+                        <td>892ms</td>
+                        <td>$0.0000</td>
+                        <td><span class="badge bg-success">Success</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
