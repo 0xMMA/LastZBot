@@ -12,13 +12,17 @@ var redroid = builder.AddContainer("redroid", "redroid/redroid", "latest")
     .WithEndpoint(5555, 5555, name: "adb", isExternal: true)
     .WithBindMount("./docker/redroid/data", "/data")
     .WithEnvironment("ANDROID_ADB_SERVER_PORT", "5555")
-    .WithEnvironment("redroid.gpu.mode", "guest");
+    .WithEnvironment("redroid.gpu.mode", "guest")
+    .WithEnvironment("redroid.fps", "30")
+    .WithEnvironment("redroid.width", "720")
+    .WithEnvironment("redroid.height", "1280")
+    .WithEnvironment("redroid.dpi", "320");
 
 // scrcpy-web for live view in the browser
 var scrcpyWeb = builder.AddContainer("scrcpy-web", "emptysuns/scrcpy-web", "v0.1")
     .WithContainerName("scrcpy-web")
     .WithHttpEndpoint(8000, 8000, name: "scrcpy")
-    .WithEnvironment("DEVICE_HOST", redroid.GetEndpoint("adb").Property(EndpointProperty.Host))
+    .WithEnvironment("DEVICE_HOST", "redroid") // Explicitly use container name for internal ADB
     .WithEnvironment("DEVICE_PORT", "5555")
     .WithAnnotation(new CommandLineArgsCallbackAnnotation(args =>
     {
@@ -26,7 +30,8 @@ var scrcpyWeb = builder.AddContainer("scrcpy-web", "emptysuns/scrcpy-web", "v0.1
         args.Add("sh");
         args.Add("-c");
         // Ensure ADB connects to Redroid before starting scrcpy-web
-        args.Add("until adb connect $DEVICE_HOST:$DEVICE_PORT; do sleep 1; done && npm start");
+        // We use the container name 'redroid' which is stable in the docker network
+        args.Add("until adb connect redroid:5555; do sleep 1; done && npm start");
     }))
     .WaitFor(redroid);
 

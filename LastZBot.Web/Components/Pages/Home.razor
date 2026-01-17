@@ -36,6 +36,21 @@
              // In Aspire, the container port 8000 is often mapped to 8000 on localhost if specified
              scrcpyUrl = "http://localhost:8000";
         }
+
+        // Auto-connect to the Redroid device to skip the "Device Tracker" screen
+        // ws-scrcpy uses hash fragments for navigation. 
+        // We target the stream action for the specific device.
+        if (!string.IsNullOrEmpty(scrcpyUrl))
+        {
+            // The UDID for redroid is typically its address in ADB
+            var udid = "redroid:5555";
+            if (!scrcpyUrl.EndsWith("/")) scrcpyUrl += "/";
+            scrcpyUrl += $"#!action=stream&udid={udid}&decoder=mse&ip=127.0.0.1&port=8000&query=%3Faction%3Dproxy%26remote%3Dtcp%253A5555";
+            
+            // Note: ws-scrcpy sometimes needs slightly different parameters depending on version.
+            // Based on the user's screenshot, it shows "redroid.dev.internal:5555" or similar.
+            // If the above fails, we might need to adjust the UDID.
+        }
     }
 
     private async Task CheckConnectionStatus()
