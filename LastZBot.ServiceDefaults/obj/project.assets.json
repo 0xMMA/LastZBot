@@ -960,24 +960,25 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\mmart\\.nuget\\packages\\": {}
+    "/home/mmartin/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Source\\LastZBot\\LastZBot.ServiceDefaults\\LastZBot.ServiceDefaults.csproj",
+      "projectUniqueName": "/home/mmartin/RiderProjects/LastZBot/LastZBot.ServiceDefaults/LastZBot.ServiceDefaults.csproj",
       "projectName": "LastZBot.ServiceDefaults",
-      "projectPath": "C:\\Source\\LastZBot\\LastZBot.ServiceDefaults\\LastZBot.ServiceDefaults.csproj",
-      "packagesPath": "C:\\Users\\mmart\\.nuget\\packages\\",
-      "outputPath": "C:\\Source\\LastZBot\\LastZBot.ServiceDefaults\\obj\\",
+      "projectPath": "/home/mmartin/RiderProjects/LastZBot/LastZBot.ServiceDefaults/LastZBot.ServiceDefaults.csproj",
+      "packagesPath": "/home/mmartin/.nuget/packages/",
+      "outputPath": "/home/mmartin/RiderProjects/LastZBot/LastZBot.ServiceDefaults/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\mmart\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "/home/mmartin/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
+        "/usr/lib/dotnet/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -1050,7 +1051,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.100/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

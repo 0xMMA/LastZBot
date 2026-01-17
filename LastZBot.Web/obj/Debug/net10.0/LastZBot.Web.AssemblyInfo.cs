@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LastZBot.Web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+445ac9482f3a1e465f282233a1bc35531c7098ee")]
 [assembly: System.Reflection.AssemblyProductAttribute("LastZBot.Web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LastZBot.Web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

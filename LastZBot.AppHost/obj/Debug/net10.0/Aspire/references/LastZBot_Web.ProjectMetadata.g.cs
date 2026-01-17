@@ -15,7 +15,7 @@ public class LastZBot_Web : global::Aspire.Hosting.IProjectMetadata
     /// <summary>
     /// The path to the LastZBot_Web project.
     /// </summary>
-    public string ProjectPath => """C:\Source\LastZBot\LastZBot.Web\LastZBot.Web.csproj""";
+    public string ProjectPath => """/home/mmartin/RiderProjects/LastZBot/LastZBot.Web/LastZBot.Web.csproj""";
 
     /// <summary>
     /// Gets a value indicating whether building the project before running it should be suppressed.

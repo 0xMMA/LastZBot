@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components
 @inject VisionApiClient VisionApi
+@inject IConfiguration Configuration
 
 <PageTitle>Last Z Bot - Dashboard</PageTitle>
 
@@ -10,10 +11,31 @@
     private bool isCapturing = false;
     private bool isConnected = false;
     private string? deviceSerial;
+    private string? scrcpyUrl;
+    private bool showLiveView = true;
 
     protected override async Task OnInitializedAsync()
     {
         await CheckConnectionStatus();
+        
+        // Try to get the scrcpy-web URL from Aspire configuration
+        // In Aspire, the format is usually services:{serviceName}:{endpointName}:{index}
+        scrcpyUrl = Configuration["services:scrcpy-web:scrcpy:0"];
+        
+        if (string.IsNullOrEmpty(scrcpyUrl))
+        {
+            // Fallback to common Aspire environment variable pattern if the above fails
+            scrcpyUrl = Configuration["services:scrcpy-web:http:0"];
+        }
+
+        // If we are in development and the URL is an internal Aspire URL (e.g. http://172.x.x.x),
+        // we might need to fallback to localhost if the browser is running on the host.
+        if (string.IsNullOrEmpty(scrcpyUrl) || scrcpyUrl.Contains("172.") || scrcpyUrl.Contains("scrcpy-web"))
+        {
+             // Try to use a reachable localhost URL if we can't reach the container IP
+             // In Aspire, the container port 8000 is often mapped to 8000 on localhost if specified
+             scrcpyUrl = "http://localhost:8000";
+        }
     }
 
     private async Task CheckConnectionStatus()
@@ -36,7 +58,7 @@
         }
         else
         {
-            errorMessage = "Failed to connect to device. Is BlueStacks running?";
+            errorMessage = "Failed to connect to device. Ensure Redroid is running in the AppHost.";
         }
     }
 
@@ -88,6 +110,14 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Android View</h5>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm @(showLiveView ? "btn-primary" : "btn-outline-primary")" @onclick="() => showLiveView = true">
+                            Live View
+                        </button>
+                        <button class="btn btn-sm @(!showLiveView ? "btn-primary" : "btn-outline-primary")" @onclick="() => showLiveView = false">
+                            Screenshot
+                        </button>
+                    </div>
                     <div>
                         @if (!isConnected)
                         {
@@ -95,40 +125,62 @@
                                 Connect
                             </button>
                         }
-                        <button class="btn btn-sm btn-outline-primary" @onclick="CaptureScreenshot" disabled="@isCapturing">
-                            @if (isCapturing)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                            }
-                            Capture Screenshot
-                        </button>
+                        @if (!showLiveView)
+                        {
+                            <button class="btn btn-sm btn-outline-primary" @onclick="CaptureScreenshot" disabled="@isCapturing">
+                                @if (isCapturing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                }
+                                Capture Screenshot
+                            </button>
+                        }
                     </div>
                 </div>
-                <div class="card-body text-center" style="min-height: 400px; background: #1a1a2e;">
+                <div class="card-body text-center" style="min-height: 400px; background: #1a1a2e; padding: 0;">
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
                         <div class="alert alert-danger m-3">@errorMessage</div>
                     }
-                    @if (!string.IsNullOrEmpty(screenshotData))
+
+                    @if (showLiveView)
                     {
-                        <img src="@screenshotData" alt="Android Screenshot" class="img-fluid" style="max-height: 500px;" />
+                        @if (!string.IsNullOrEmpty(scrcpyUrl))
+                        {
+                            <iframe src="@scrcpyUrl" style="width: 100%; height: 600px; border: none;"></iframe>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-column justify-content-center align-items-center h-100" style="min-height: 400px; color: #6c757d;">
+                                <p>Live view not available (scrcpy-web not found)</p>
+                            </div>
+                        }
                     }
                     else
                     {
-                        <div class="d-flex flex-column justify-content-center align-items-center h-100" style="min-height: 400px; color: #6c757d;">
-                            <div style="font-size: 4rem;">📱</div>
-                            <p class="mt-3">BlueStacks Display</p>
-                            <small>Click "Capture Screenshot" to view current screen</small>
-                            <small class="text-muted mt-2">
-                                @if (isConnected)
-                                {
-                                    <span class="text-success">Connected: @deviceSerial</span>
-                                }
-                                else
-                                {
-                                    <span>ADB: 127.0.0.1:5605 (Not connected)</span>
-                                }
-                            </small>
+                        <div style="padding: 1.25rem;">
+                            @if (!string.IsNullOrEmpty(screenshotData))
+                            {
+                                <img src="@screenshotData" alt="Android Screenshot" class="img-fluid" style="max-height: 500px;" />
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-column justify-content-center align-items-center h-100" style="min-height: 400px; color: #6c757d;">
+                                    <div style="font-size: 4rem;">📱</div>
+                                    <p class="mt-3">Redroid Display</p>
+                                    <small>Click "Capture Screenshot" to view current screen</small>
+                                    <small class="text-muted mt-2">
+                                        @if (isConnected)
+                                        {
+                                            <span class="text-success">Connected: @deviceSerial</span>
+                                        }
+                                        else
+                                        {
+                                            <span>ADB: Redroid (Not connected)</span>
+                                        }
+                                    </small>
+                                </div>
+                            }
                         </div>
                     }
                 </div>
@@ -157,7 +209,7 @@
                     </div>
                     <div class="mb-2">
                         <strong>Target:</strong> 
-                        <span class="text-muted">127.0.0.1:5605</span>
+                        <span class="text-muted">Redroid (ADB:5555)</span>
                     </div>
                 </div>
             </div>

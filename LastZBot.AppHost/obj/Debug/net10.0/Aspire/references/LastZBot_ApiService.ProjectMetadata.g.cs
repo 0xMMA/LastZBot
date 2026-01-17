@@ -15,7 +15,7 @@ public class LastZBot_ApiService : global::Aspire.Hosting.IProjectMetadata
     /// <summary>
     /// The path to the LastZBot_ApiService project.
     /// </summary>
-    public string ProjectPath => """C:\Source\LastZBot\LastZBot.ApiService\LastZBot.ApiService.csproj""";
+    public string ProjectPath => """/home/mmartin/RiderProjects/LastZBot/LastZBot.ApiService/LastZBot.ApiService.csproj""";
 
     /// <summary>
     /// Gets a value indicating whether building the project before running it should be suppressed.

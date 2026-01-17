@@ -77,6 +77,7 @@
           "Microsoft.NET.StringTools": "17.14.28",
           "System.CodeDom": "9.0.0",
           "System.Configuration.ConfigurationManager": "9.0.0",
+          "System.Diagnostics.EventLog": "10.0.0",
           "System.Formats.Nrbf": "9.0.0",
           "System.Resources.Extensions": "9.0.0",
           "System.Security.Cryptography.ProtectedData": "9.0.0"
@@ -93,6 +94,7 @@
           "Microsoft.Build.Framework": "17.14.28",
           "Microsoft.NET.StringTools": "17.14.28",
           "System.Configuration.ConfigurationManager": "9.0.0",
+          "System.Diagnostics.EventLog": "10.0.0",
           "System.Security.Cryptography.ProtectedData": "9.0.0"
         },
         "runtime": {
@@ -330,6 +332,7 @@
           "System.CodeDom": "9.0.0",
           "System.Composition": "9.0.0",
           "System.Configuration.ConfigurationManager": "9.0.0",
+          "System.Diagnostics.EventLog": "10.0.0",
           "System.Resources.Extensions": "9.0.0",
           "System.Security.Cryptography.ProtectedData": "9.0.0",
           "System.Security.Permissions": "9.0.0",
@@ -1090,12 +1093,23 @@
       },
       "System.Configuration.ConfigurationManager/9.0.0": {
         "dependencies": {
+          "System.Diagnostics.EventLog": "10.0.0",
           "System.Security.Cryptography.ProtectedData": "9.0.0"
         },
         "runtime": {
           "lib/net9.0/System.Configuration.ConfigurationManager.dll": {
             "assemblyVersion": "9.0.0.0",
             "fileVersion": "9.0.24.52809"
+          }
+        }
+      },
+      "System.Diagnostics.EventLog/10.0.0": {
+        "runtimeTargets": {
+          "runtimes/win/lib/net10.0/System.Diagnostics.EventLog.Messages.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.25.52411"
           }
         }
       },
@@ -1689,6 +1703,13 @@
       "sha512": "sha512-PdkuMrwDhXoKFo/JxISIi9E8L+QGn9Iquj2OKDWHB6Y/HnUOuBouF7uS3R4Hw3FoNmwwMo6hWgazQdyHIIs27A==",
       "path": "system.configuration.configurationmanager/9.0.0",
       "hashPath": "system.configuration.configurationmanager.9.0.0.nupkg.sha512"
+    },
+    "System.Diagnostics.EventLog/10.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-uaFRda9NjtbJRkdx311eXlAA3n2em7223c1A8d1VWyl+4FL9vkG7y2lpPfBU9HYdj/9KgdRNdn1vFK8ZYCYT/A==",
+      "path": "system.diagnostics.eventlog/10.0.0",
+      "hashPath": "system.diagnostics.eventlog.10.0.0.nupkg.sha512"
     },
     "System.Formats.Nrbf/9.0.0": {
       "type": "package",

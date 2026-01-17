@@ -17,5 +17,5 @@ public class LastZBot_AppHost
     /// <summary>
     /// The path to the Aspire Host project.
     /// </summary>
-    public static string ProjectPath => """C:\Source\LastZBot\LastZBot.AppHost""";
+    public static string ProjectPath => """/home/mmartin/RiderProjects/LastZBot/LastZBot.AppHost""";
 }

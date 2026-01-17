@@ -12,7 +12,7 @@ public class AdbService
     private AdbClient? _adbClient;
     private DeviceData? _device;
     private string _host = "127.0.0.1";
-    private int _port = 5605; // BlueStacks default port
+    private int _port = 5555; // Redroid default port
 
     public AdbService(ILogger<AdbService> logger, IHostEnvironment environment)
     {
@@ -42,7 +42,7 @@ public class AdbService
                 var adbPaths = new List<string>();
                 
                 // Only use BlueStacks ADB in Development (Windows local dev)
-                if (_environment.IsDevelopment())
+                if (_environment.IsDevelopment() && OperatingSystem.IsWindows())
                 {
                     adbPaths.Add(@"C:\Program Files\BlueStacks_nxt\HD-Adb.exe");
                     adbPaths.Add(@"C:\Program Files (x86)\BlueStacks_nxt\HD-Adb.exe");
@@ -50,12 +50,17 @@ public class AdbService
                 
                 // Always try system ADB as fallback
                 adbPaths.Add("adb");
+                
+                // Common Linux paths
+                adbPaths.Add("/usr/bin/adb");
+                adbPaths.Add("/usr/local/bin/adb");
 
                 var started = false;
                 foreach (var adbPath in adbPaths)
                 {
                     try
                     {
+                        // Check if file exists or it's just "adb" (to be found in PATH)
                         if (adbPath == "adb" || File.Exists(adbPath))
                         {
                             _logger.LogInformation("Trying ADB at: {Path}", adbPath);
@@ -73,8 +78,8 @@ public class AdbService
 
                 if (!started)
                 {
-                    _logger.LogWarning("Could not start ADB server automatically. Please start it manually.");
-                    // Don't fail - the server might be started externally
+                    _logger.LogWarning("Could not start ADB server automatically. This service requires an ADB binary to be installed on the host or available in the PATH.");
+                    _logger.LogWarning("Please install ADB: 'sudo apt install adb' on Ubuntu/Debian.");
                 }
             }
             else
@@ -83,14 +88,23 @@ public class AdbService
             }
 
             // Create ADB client
-            _adbClient = new AdbClient();
+            // We use 127.0.0.1:5037 as the default ADB server endpoint.
+            // Even when connecting to a remote device, AdbClient still expects to talk to a local ADB server.
+            _adbClient = new AdbClient(new IPEndPoint(IPAddress.Loopback, 5037));
 
             // Connect to the device (BlueStacks/emulator/redroid)
             var endpoint = new DnsEndPoint(connectHost, connectPort);
             _logger.LogInformation("Connecting to device at {Host}:{Port}...", connectHost, connectPort);
             
-            var connectResult = await _adbClient.ConnectAsync(endpoint);
-            _logger.LogInformation("Connection result: {Result}", connectResult);
+            try 
+            {
+                var connectResult = await _adbClient.ConnectAsync(endpoint);
+                _logger.LogInformation("Connection result: {Result}", connectResult);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "ConnectAsync failed, but continuing as it might already be connected or ADB server might handle it.");
+            }
 
             // Wait a moment for device to register
             await Task.Delay(1000);
@@ -99,7 +113,22 @@ public class AdbService
             var devices = await _adbClient.GetDevicesAsync();
             if (!devices.Any())
             {
-                _logger.LogWarning("No devices found after connection");
+                _logger.LogWarning("No devices found after connection. Attempting to force connect again...");
+                try 
+                {
+                    await _adbClient.ConnectAsync(endpoint);
+                    await Task.Delay(2000);
+                    devices = await _adbClient.GetDevicesAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Force connect failed");
+                }
+            }
+
+            if (!devices.Any())
+            {
+                _logger.LogWarning("Still no devices found after retry.");
                 return false;
             }
 
@@ -296,7 +325,7 @@ public class AdbService
         }
     }
 
-    public bool IsConnected => _device != null && _adbClient != null && _device.State == DeviceState.Online;
+    public bool IsConnected => _device != null && _device.State == DeviceState.Online;
     
     public string? DeviceSerial => _device?.Serial;
 }

@@ -15,7 +15,7 @@ public class LastZBot_VisionService : global::Aspire.Hosting.IProjectMetadata
     /// <summary>
     /// The path to the LastZBot_VisionService project.
     /// </summary>
-    public string ProjectPath => """C:\Source\LastZBot\LastZBot.VisionService\LastZBot.VisionService.csproj""";
+    public string ProjectPath => """/home/mmartin/RiderProjects/LastZBot/LastZBot.VisionService/LastZBot.VisionService.csproj""";
 
     /// <summary>
     /// Gets a value indicating whether building the project before running it should be suppressed.

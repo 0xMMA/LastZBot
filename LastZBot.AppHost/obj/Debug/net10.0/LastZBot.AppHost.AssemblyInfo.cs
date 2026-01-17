@@ -11,21 +11,21 @@ using System;
 using System.Reflection;
 
 [assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("d8479502-4e6c-4448-ae51-a5bcf461aeb4")]
-[assembly: System.Reflection.AssemblyMetadata("dcpclipath", ("C:\\Users\\mmart\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
-    "dcp.exe"))]
-[assembly: System.Reflection.AssemblyMetadata("dcpextensionpaths", ("C:\\Users\\mmart\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
-    "ext\\"))]
-[assembly: System.Reflection.AssemblyMetadata("dcpbinpath", ("C:\\Users\\mmart\\.nuget\\packages\\aspire.hosting.orchestration.win-x64\\13.1.0\\tools\\" +
-    "ext\\bin\\"))]
-[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "C:\\Source\\LastZBot\\LastZBot.AppHost")]
+[assembly: System.Reflection.AssemblyMetadata("dcpclipath", ("/home/mmartin/.nuget/packages/aspire.hosting.orchestration.linux-x64/13.1.0/tools" +
+    "/dcp"))]
+[assembly: System.Reflection.AssemblyMetadata("dcpextensionpaths", ("/home/mmartin/.nuget/packages/aspire.hosting.orchestration.linux-x64/13.1.0/tools" +
+    "/ext/"))]
+[assembly: System.Reflection.AssemblyMetadata("dcpbinpath", ("/home/mmartin/.nuget/packages/aspire.hosting.orchestration.linux-x64/13.1.0/tools" +
+    "/ext/bin/"))]
+[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "/home/mmartin/RiderProjects/LastZBot/LastZBot.AppHost")]
 [assembly: System.Reflection.AssemblyMetadata("apphostprojectname", "LastZBot.AppHost.csproj")]
-[assembly: System.Reflection.AssemblyMetadata("aspiredashboardpath", ("C:\\Users\\mmart\\.nuget\\packages\\aspire.dashboard.sdk.win-x64\\13.1.0\\tools\\Aspire.D" +
-    "ashboard.exe"))]
-[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "C:\\Source\\LastZBot\\LastZBot.AppHost\\obj\\")]
+[assembly: System.Reflection.AssemblyMetadata("aspiredashboardpath", ("/home/mmartin/.nuget/packages/aspire.dashboard.sdk.linux-x64/13.1.0/tools/Aspire." +
+    "Dashboard"))]
+[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "/home/mmartin/RiderProjects/LastZBot/LastZBot.AppHost/obj/")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("LastZBot.AppHost")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+445ac9482f3a1e465f282233a1bc35531c7098ee")]
 [assembly: System.Reflection.AssemblyProductAttribute("LastZBot.AppHost")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LastZBot.AppHost")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

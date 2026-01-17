@@ -4,9 +4,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // Configure ADB connection settings
-// Default to BlueStacks port for local dev, can be overridden via Adb__Host and Adb__Port env vars
+// Default to Redroid on localhost if not overridden via Adb__Host and Adb__Port env vars
 var adbHost = builder.Configuration["Adb:Host"] ?? "127.0.0.1";
-var adbPort = builder.Configuration.GetValue<int>("Adb:Port", 5605);
+var adbPort = builder.Configuration.GetValue<int>("Adb:Port", 5555);
 
 // Register AdbService as singleton
 builder.Services.AddSingleton<AdbService>(sp =>

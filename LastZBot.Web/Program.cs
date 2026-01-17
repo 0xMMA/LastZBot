@@ -24,6 +24,8 @@ builder.Services.AddHttpClient<VisionApiClient>(client =>
         client.BaseAddress = new("https+http://visionservice");
     });
 
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
