@@ -21,14 +21,19 @@ builder.Services.AddSingleton<AdbService>(sp =>
 // Add background worker for connection management
 builder.Services.AddHostedService<Worker>();
 
+// Add SignalR
+builder.Services.AddSignalR();
+builder.Services.AddHostedService<FrameBroadcaster>();
+
 // Add CORS for web frontend
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(origin => true) // Allow any origin for SignalR
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // Required for SignalR
     });
 });
 
@@ -36,6 +41,7 @@ var app = builder.Build();
 
 app.UseCors();
 app.MapDefaultEndpoints();
+app.MapHub<FrameHub>("/hubs/frame");
 
 // API Endpoints
 

@@ -1,7 +1,9 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.SignalR.Client
 @inject VisionApiClient VisionApi
 @inject IConfiguration Configuration
+@implements IAsyncDisposable
 
 <PageTitle>Last Z Bot - Dashboard</PageTitle>
 
@@ -11,45 +13,70 @@
     private bool isCapturing = false;
     private bool isConnected = false;
     private string? deviceSerial;
-    private string? scrcpyUrl;
     private bool showLiveView = true;
+    
+    private HubConnection? hubConnection;
+    private string? liveFrameData;
+    private int frameCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
         await CheckConnectionStatus();
         
-        // Try to get the scrcpy-web URL from Aspire configuration
-        // In Aspire, the format is usually services:{serviceName}:{endpointName}:{index}
-        scrcpyUrl = Configuration["services:scrcpy-web:scrcpy:0"];
+        var visionServiceUrl = Configuration["services:visionservice:http:0"];
+        Console.WriteLine($"[DEBUG_LOG] VisionService URL from config: {visionServiceUrl}");
         
-        if (string.IsNullOrEmpty(scrcpyUrl))
+        if (string.IsNullOrEmpty(visionServiceUrl))
         {
-            // Fallback to common Aspire environment variable pattern if the above fails
-            scrcpyUrl = Configuration["services:scrcpy-web:http:0"];
+             // Fallback for development
+             visionServiceUrl = "http://localhost:5031"; 
+             Console.WriteLine($"[DEBUG_LOG] Using fallback VisionService URL: {visionServiceUrl}");
         }
 
-        // If we are in development and the URL is an internal Aspire URL (e.g. http://172.x.x.x),
-        // we might need to fallback to localhost if the browser is running on the host.
-        if (string.IsNullOrEmpty(scrcpyUrl) || scrcpyUrl.Contains("172.") || scrcpyUrl.Contains("scrcpy-web"))
-        {
-             // Try to use a reachable localhost URL if we can't reach the container IP
-             // In Aspire, the container port 8000 is often mapped to 8000 on localhost if specified
-             scrcpyUrl = "http://localhost:8000";
-        }
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl($"{visionServiceUrl.TrimEnd('/')}/hubs/frame")
+            .WithAutomaticReconnect()
+            .ConfigureLogging(logging => {
+                logging.SetMinimumLevel(LogLevel.Debug);
+            })
+            .Build();
 
-        // Auto-connect to the Redroid device to skip the "Device Tracker" screen
-        // ws-scrcpy uses hash fragments for navigation. 
-        // We target the stream action for the specific device.
-        if (!string.IsNullOrEmpty(scrcpyUrl))
+        hubConnection.On<string>("ReceiveFrame", (frame) =>
         {
-            // The UDID for redroid is typically its address in ADB
-            var udid = "redroid:5555";
-            if (!scrcpyUrl.EndsWith("/")) scrcpyUrl += "/";
-            scrcpyUrl += $"#!action=stream&udid={udid}&decoder=mse&ip=127.0.0.1&port=8000&query=%3Faction%3Dproxy%26remote%3Dtcp%253A5555";
+            // Only log every 50th frame to avoid spam but confirm it's working
+            if (frameCount++ % 50 == 0) {
+                 Console.WriteLine($"[DEBUG_LOG] Received frame {frameCount} from SignalR. Size: {frame.Length} chars");
+            }
             
-            // Note: ws-scrcpy sometimes needs slightly different parameters depending on version.
-            // Based on the user's screenshot, it shows "redroid.dev.internal:5555" or similar.
-            // If the above fails, we might need to adjust the UDID.
+            liveFrameData = frame;
+            if (showLiveView)
+            {
+                InvokeAsync(StateHasChanged);
+            }
+        });
+
+        hubConnection.Reconnected += (connectionId) =>
+        {
+            errorMessage = null;
+            return InvokeAsync(StateHasChanged);
+        };
+
+        hubConnection.Closed += (error) =>
+        {
+            if (error != null)
+            {
+                errorMessage = $"Live stream connection closed: {error.Message}";
+            }
+            return InvokeAsync(StateHasChanged);
+        };
+
+        try
+        {
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to connect to live stream: {ex.Message}";
         }
     }
 
@@ -110,6 +137,14 @@
             StateHasChanged();
         }
     }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
 }
 
 <div class="container-fluid">
@@ -160,16 +195,23 @@
 
                     @if (showLiveView)
                     {
-                        @if (!string.IsNullOrEmpty(scrcpyUrl))
-                        {
-                            <iframe src="@scrcpyUrl" style="width: 100%; height: 600px; border: none;"></iframe>
-                        }
-                        else
-                        {
-                            <div class="d-flex flex-column justify-content-center align-items-center h-100" style="min-height: 400px; color: #6c757d;">
-                                <p>Live view not available (scrcpy-web not found)</p>
-                            </div>
-                        }
+                        <div style="padding: 1.25rem;">
+                            @if (!string.IsNullOrEmpty(liveFrameData))
+                            {
+                                <img src="@liveFrameData" alt="Android Live View" class="img-fluid" style="max-height: 600px;" />
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-column justify-content-center align-items-center h-100" style="min-height: 400px; color: #6c757d;">
+                                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                                    <p>Waiting for live stream...</p>
+                                    @if (!isConnected)
+                                    {
+                                        <small class="text-warning">Device not connected</small>
+                                    }
+                                </div>
+                            }
+                        </div>
                     }
                     else
                     {

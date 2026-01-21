@@ -6,34 +6,17 @@ var postgres = builder.AddPostgres("postgres")
     .AddDatabase("lastzbot");
 
 // Redroid container with privileged mode for Android emulation
-var redroid = builder.AddContainer("redroid", "redroid/redroid", "latest")
+var redroid = builder.AddContainer("redroid", "redroid/redroid", "11.0.0-latest")
     .WithContainerName("redroid")
     .WithContainerRuntimeArgs("--privileged")
     .WithEndpoint(5555, 5555, name: "adb", isExternal: true)
     .WithBindMount("./docker/redroid/data", "/data")
-    .WithEnvironment("ANDROID_ADB_SERVER_PORT", "5555")
-    .WithEnvironment("redroid.gpu.mode", "guest")
+    .WithEnvironment("redroid.gpu.mode", "software")
+    .WithEnvironment("redroid.gralloc.no_hw_buffer", "1")
     .WithEnvironment("redroid.fps", "30")
     .WithEnvironment("redroid.width", "720")
     .WithEnvironment("redroid.height", "1280")
     .WithEnvironment("redroid.dpi", "320");
-
-// scrcpy-web for live view in the browser
-var scrcpyWeb = builder.AddContainer("scrcpy-web", "emptysuns/scrcpy-web", "v0.1")
-    .WithContainerName("scrcpy-web")
-    .WithHttpEndpoint(8000, 8000, name: "scrcpy")
-    .WithEnvironment("DEVICE_HOST", "redroid") // Explicitly use container name for internal ADB
-    .WithEnvironment("DEVICE_PORT", "5555")
-    .WithAnnotation(new CommandLineArgsCallbackAnnotation(args =>
-    {
-        args.Clear();
-        args.Add("sh");
-        args.Add("-c");
-        // Ensure ADB connects to Redroid before starting scrcpy-web
-        // We use the container name 'redroid' which is stable in the docker network
-        args.Add("until adb connect redroid:5555; do sleep 1; done && npm start");
-    }))
-    .WaitFor(redroid);
 
 // Bot service - coordinates automation tasks
 var botService = builder.AddProject<Projects.LastZBot_BotService>("botservice")
@@ -58,7 +41,6 @@ var web = builder.AddProject<Projects.LastZBot_Web>("webfrontend")
     .WithReference(apiService)
     .WithReference(botService)
     .WithReference(visionService)
-    .WaitFor(apiService)
-    .WaitFor(scrcpyWeb);
+    .WaitFor(apiService);
 
 builder.Build().Run();

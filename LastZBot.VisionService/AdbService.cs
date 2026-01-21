@@ -1,7 +1,11 @@
 using AdvancedSharpAdbClient;
 using AdvancedSharpAdbClient.Models;
 using AdvancedSharpAdbClient.Receivers;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
 using System.Net;
+using System.Linq;
 
 namespace LastZBot.VisionService;
 
@@ -87,64 +91,100 @@ public class AdbService
                 _logger.LogInformation("ADB server already running");
             }
 
-            // Create ADB client
-            // We use 127.0.0.1:5037 as the default ADB server endpoint.
-            // Even when connecting to a remote device, AdbClient still expects to talk to a local ADB server.
-            _adbClient = new AdbClient(new IPEndPoint(IPAddress.Loopback, 5037));
+            // Create ADB client if not exists
+            if (_adbClient == null)
+            {
+                // We use 127.0.0.1:5037 as the default ADB server endpoint.
+                _adbClient = new AdbClient(new IPEndPoint(IPAddress.Loopback, 5037));
+            }
 
             // Connect to the device (BlueStacks/emulator/redroid)
             var endpoint = new DnsEndPoint(connectHost, connectPort);
             _logger.LogInformation("Connecting to device at {Host}:{Port}...", connectHost, connectPort);
             
-            try 
-            {
-                var connectResult = await _adbClient.ConnectAsync(endpoint);
-                _logger.LogInformation("Connection result: {Result}", connectResult);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "ConnectAsync failed, but continuing as it might already be connected or ADB server might handle it.");
-            }
+            DeviceData? targetDevice = null;
+            var retryCount = 0;
+            const int maxRetries = 10;
 
-            // Wait a moment for device to register
-            await Task.Delay(1000);
-
-            // Get connected devices
-            var devices = await _adbClient.GetDevicesAsync();
-            if (!devices.Any())
+            while (retryCount < maxRetries)
             {
-                _logger.LogWarning("No devices found after connection. Attempting to force connect again...");
                 try 
                 {
-                    await _adbClient.ConnectAsync(endpoint);
-                    await Task.Delay(2000);
-                    devices = await _adbClient.GetDevicesAsync();
+                    var connectResult = await _adbClient.ConnectAsync(endpoint);
+                    _logger.LogDebug("Connection attempt {Retry}: {Result}", retryCount, connectResult);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Force connect failed");
+                    _logger.LogDebug("ConnectAsync failed: {Message}", ex.Message);
                 }
+
+                // Wait for device to register and update state
+                await Task.Delay(2000);
+
+                var devices = await _adbClient.GetDevicesAsync();
+                var deviceList = devices.ToList();
+                
+                // 1. Look for our specific device that is Online
+                targetDevice = deviceList.FirstOrDefault(d => 
+                    (d.Serial.Contains(connectHost) || d.Serial.Contains($"{connectPort}")) && 
+                    d.State == DeviceState.Online);
+
+                // 2. Fallback: any online device (if we only expect one)
+                if (targetDevice == null)
+                {
+                    targetDevice = deviceList.FirstOrDefault(d => d.State == DeviceState.Online);
+                    if (targetDevice != null)
+                    {
+                        _logger.LogInformation("Selected alternative online device: {Serial}", targetDevice.Serial);
+                    }
+                }
+
+                if (targetDevice != null) break;
+
+                // If we found the device but it's offline, log it
+                var offlineDevice = deviceList.FirstOrDefault(d => 
+                    d.Serial.Contains(connectHost) || d.Serial.Contains($"{connectPort}"));
+                
+                if (offlineDevice != null)
+                {
+                    _logger.LogInformation("Device {Serial} found but State is {State}. Retrying ({Retry}/{MaxRetries})...", 
+                        offlineDevice.Serial, offlineDevice.State, retryCount + 1, maxRetries);
+                    
+                    // Sometimes disconnecting and reconnecting helps when stuck in Offline
+                    if (retryCount > 0 && retryCount % 3 == 0)
+                    {
+                        _logger.LogInformation("Attempting to wake up offline device...");
+                        // We don't have a reliable Disconnect here, but calling Connect again often works
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("Device {Host}:{Port} not found in device list. Retrying ({Retry}/{MaxRetries})...", 
+                        connectHost, connectPort, retryCount + 1, maxRetries);
+                }
+
+                retryCount++;
             }
 
-            if (!devices.Any())
-            {
-                _logger.LogWarning("Still no devices found after retry.");
-                return false;
-            }
-
-            // Find our device
-            _device = devices.FirstOrDefault(d => 
-                d.Serial.Contains(connectHost) || 
-                d.Serial.Contains($"{connectPort}") ||
-                d.State == DeviceState.Online);
+            _device = targetDevice;
 
             if (_device == null)
             {
-                _device = devices.First();
+                // Last ditch effort: pick the first device if any exists, even if offline
+                var devices = await _adbClient.GetDevicesAsync();
+                _device = devices.FirstOrDefault();
             }
 
-            _logger.LogInformation("Connected to device: {Serial} (State: {State})", 
-                _device.Serial, _device.State);
+            if (_device != null)
+            {
+                _logger.LogInformation("Final device selection: {Serial} (State: {State})", 
+                    _device.Serial, _device.State);
+            }
+            else
+            {
+                _logger.LogWarning("No devices found after all retries.");
+                return false;
+            }
             
             return _device.State == DeviceState.Online;
         }
@@ -165,46 +205,97 @@ public class AdbService
 
         try
         {
-            // Use screencap to save PNG to device, then pull the file
-            const string remotePath = "/sdcard/screenshot_temp.png";
-            
-            // Capture screenshot to file on device
-            var receiver = new ConsoleOutputReceiver();
-            await _adbClient.ExecuteRemoteCommandAsync(
-                $"screencap -p {remotePath}", 
-                _device, 
-                receiver,
-                CancellationToken.None);
-            
-            // Pull the file from device
-            using var ms = new MemoryStream();
-            using var syncService = new SyncService(_device);
-            
-            await syncService.PullAsync(remotePath, ms, null, CancellationToken.None);
-            
-            // Delete temp file on device
-            await _adbClient.ExecuteRemoteCommandAsync(
-                $"rm {remotePath}", 
-                _device, 
-                receiver,
-                CancellationToken.None);
-            
-            var data = ms.ToArray();
-            
-            if (data.Length == 0)
+            using var framebuffer = await _adbClient.GetFrameBufferAsync(_device, CancellationToken.None);
+            if (framebuffer == null)
             {
-                _logger.LogWarning("Screenshot data is empty");
+                _logger.LogWarning("GetFrameBufferAsync returned null");
+                return null;
+            }
+
+            if (framebuffer.Header.Width == 0 || framebuffer.Header.Height == 0)
+            {
+                _logger.LogWarning("Framebuffer has invalid dimensions: {Width}x{Height}", 
+                    framebuffer.Header.Width, framebuffer.Header.Height);
+            }
+
+            _logger.LogDebug("Framebuffer received: {Width}x{Height}, Bpp: {Bpp}, Size: {Size}", 
+                framebuffer.Header.Width, framebuffer.Header.Height, framebuffer.Header.Bpp, 
+                framebuffer.Data?.Length ?? 0);
+
+            using var imageSharp = ToImageSharp(framebuffer);
+            if (imageSharp == null)
+            {
+                _logger.LogWarning("Failed to convert FrameBuffer to ImageSharp image. Header: {Width}x{Height}, Bpp: {Bpp}, DataLength: {DataLength}",
+                    framebuffer.Header.Width, framebuffer.Header.Height, framebuffer.Header.Bpp, framebuffer.Data?.Length ?? 0);
                 return null;
             }
             
-            _logger.LogDebug("Screenshot captured: {Size} bytes", data.Length);
+            using var ms = new MemoryStream();
+            await imageSharp.SaveAsJpegAsync(ms, new JpegEncoder { Quality = 75 });
+            
+            var data = ms.ToArray();
+            _logger.LogDebug("Screenshot captured via FrameBuffer: {Size} bytes", data.Length);
             return data;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error capturing screenshot");
+            _logger.LogError(ex, "Error capturing screenshot via FrameBuffer");
             return null;
         }
+    }
+    
+    public Image<Rgba32>? ToImageSharp(Framebuffer framebuffer)
+    {
+        // Framebuffer holen (raw bytes)
+        var buffer = framebuffer.Data;
+        var width = (int)framebuffer.Header.Width;
+        var height = (int)framebuffer.Header.Height;
+        var bpp = (int)framebuffer.Header.Bpp;
+
+        if (width <= 0 || height <= 0 || buffer == null || buffer.Length == 0)
+        {
+            _logger.LogWarning("Invalid framebuffer data: Width={Width}, Height={Height}, BufferLength={BufferLength}", 
+                width, height, buffer?.Length ?? 0);
+            return null;
+        }
+
+        var expectedLength = width * height * (bpp / 8);
+        if (buffer.Length < expectedLength)
+        {
+            _logger.LogWarning("Framebuffer data too small: Expected at least {Expected}, but got {Actual}", 
+                expectedLength, buffer.Length);
+            return null;
+        }
+
+        // Neues Image erstellen
+        var image = new Image<Rgba32>(width, height);
+
+        // Pixel Format von Android ist meistens RGBA oder BGRA
+        image.ProcessPixelRows(accessor =>
+        {
+            var bytesPerPixel = bpp / 8;
+            for (int y = 0; y < height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    var offset = (y * width + x) * bytesPerPixel;
+                    
+                    if (offset + 3 < buffer.Length)
+                    {
+                        // Android ist meistens RGBA
+                        row[x] = new Rgba32(
+                            buffer[offset],     // R
+                            buffer[offset + 1], // G
+                            buffer[offset + 2], // B
+                            buffer[offset + 3]  // A
+                        );
+                    }
+                }
+            }
+        });
+
+        return image;
     }
 
     public async Task<bool> TapAsync(int x, int y)
@@ -321,6 +412,35 @@ public class AdbService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error executing shell command: {Command}", command);
+            return null;
+        }
+    }
+
+    public async Task<byte[]?> GetFrameAsync()
+    {
+        if (_adbClient == null || _device == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            // Use GetFrameBufferAsync and convert to PNG to avoid slow file operations
+            using var framebuffer = await _adbClient.GetFrameBufferAsync(_device, CancellationToken.None);
+            if (framebuffer == null) return null;
+
+            // Use the built-in ToImage() if available, otherwise we might need a library
+            // AdvancedSharpAdbClient usually returns a Framebuffer which has a Data property (raw pixels)
+            // Converting raw pixels to PNG in .NET usually requires SkiaSharp or ImageSharp
+            // Let's see if we can at least get the data.
+            
+            // If we can't easily convert to PNG here, we might stick to CaptureScreenshotAsync 
+            // but let's try to optimize it.
+            return framebuffer.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting framebuffer");
             return null;
         }
     }
