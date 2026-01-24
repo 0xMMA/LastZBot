@@ -15,6 +15,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LastZBot.BotService", "Last
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LastZBot.VisionService", "LastZBot.VisionService\LastZBot.VisionService.csproj", "{0C69D7E3-551D-4E41-ABF3-E59D89441F94}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1 Source", "1 Source", "{F0A4E9E1-6B2A-4F1A-98C3-B4716A8C1111}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "10 Solutions files", "10 Solutions files", "{F0A4E9E1-6B2A-4F1A-98C3-B4716A8C2222}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE.md = LICENSE.md
+		README.md = README.md
+		last-z-bot-mvp-spec.md = last-z-bot-mvp-spec.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "9 Tools", "9 Tools", "{F0A4E9E1-6B2A-4F1A-98C3-B4716A8C3333}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -103,5 +114,13 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {451105F2-E840-4AC6-8DC4-117447EC271D}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EA524EB5-87B5-45C7-8BD7-50A94A1A945F} = {F0A4E9E1-6B2A-4F1A-98C3-B4716A8C1111}
+		{CBAA1822-DDC7-4E08-B7BE-8049445AF487} = {F0A4E9E1-6B2A-4F1A-98C3-B4716A8C1111}
+		{4E2DFE15-F099-4B2D-80DB-F1F3ABCBE051} = {F0A4E9E1-6B2A-4F1A-98C3-B4716A8C1111}
+		{0C69D7E3-551D-4E41-ABF3-E59D89441F94} = {F0A4E9E1-6B2A-4F1A-98C3-B4716A8C1111}
+		{A20B507C-4C4D-4271-862F-48C419BD1F33} = {F0A4E9E1-6B2A-4F1A-98C3-B4716A8C3333}
+		{1552633C-0FD4-4662-AF33-D3FA685A7DD0} = {F0A4E9E1-6B2A-4F1A-98C3-B4716A8C3333}
 	EndGlobalSection
 EndGlobal

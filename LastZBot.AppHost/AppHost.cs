@@ -6,7 +6,7 @@ var postgres = builder.AddPostgres("postgres")
     .AddDatabase("lastzbot");
 
 // Redroid container with privileged mode for Android emulation
-var redroid = builder.AddContainer("redroid", "redroid/redroid", "11.0.0-latest")
+var redroid = builder.AddContainer("redroid", "redroid/redroid", "16.0.0-latest")
     .WithContainerName("redroid")
     .WithContainerRuntimeArgs("--privileged")
     .WithEndpoint(5555, 5555, name: "adb", isExternal: true)
