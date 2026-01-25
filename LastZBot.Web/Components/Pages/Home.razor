@@ -23,8 +23,8 @@
     {
         await CheckConnectionStatus();
         
-        var visionServiceUrl = Configuration["services:visionservice:http:0"];
-        Console.WriteLine($"[DEBUG_LOG] VisionService URL from config: {visionServiceUrl}");
+        var visionServiceUrl = VisionApi.BaseAddress;
+        Console.WriteLine($"[DEBUG_LOG] VisionService URL from ApiClient: {visionServiceUrl}");
         
         if (string.IsNullOrEmpty(visionServiceUrl))
         {
@@ -45,7 +45,7 @@
         {
             // Only log every 50th frame to avoid spam but confirm it's working
             if (frameCount++ % 50 == 0) {
-                 Console.WriteLine($"[DEBUG_LOG] Received frame {frameCount} from SignalR. Size: {frame.Length} chars");
+                 Console.WriteLine($"[DEBUG_LOG] Received frame {frameCount} from SignalR. Size: {frame.Length} chars. Start: {frame.Substring(0, Math.Min(30, frame.Length))}");
             }
             
             liveFrameData = frame;

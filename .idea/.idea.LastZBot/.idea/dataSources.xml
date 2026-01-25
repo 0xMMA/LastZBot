@@ -36,11 +36,11 @@
       <jdbc-url>jdbc:postgresql://localhost:32770/?password=n%7EfpaC-bxzm%2BDf.p7dp%2918&amp;user=postgres</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="postgres" uuid="e740cfe1-9872-4809-b9b7-6707cf8ffcb1">
+    <data-source source="LOCAL" name="postgres" uuid="34277ca4-6323-43f0-9a3c-67e4f71c0a23">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://localhost:32771/?password=n%7EfpaC-bxzm%2BDf.p7dp%2918&amp;user=postgres</jdbc-url>
+      <jdbc-url>jdbc:postgresql://localhost:32786/?password=n%7EfpaC-bxzm%2BDf.p7dp%2918&amp;user=postgres</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>

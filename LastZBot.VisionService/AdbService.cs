@@ -17,6 +17,7 @@ public class AdbService
     private DeviceData? _device;
     private string _host = "127.0.0.1";
     private int _port = 5555; // Redroid default port
+    private string? _debugSavePath;
 
     public AdbService(ILogger<AdbService> logger, IHostEnvironment environment)
     {
@@ -235,6 +236,24 @@ public class AdbService
             
             var data = ms.ToArray();
             _logger.LogDebug("Screenshot captured via FrameBuffer: {Size} bytes", data.Length);
+
+            if (_debugSavePath != null)
+            {
+                try
+                {
+                    var path = _debugSavePath;
+                    _debugSavePath = null; // Clear after use
+                    var dir = Path.GetDirectoryName(path);
+                    if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                    await File.WriteAllBytesAsync(path, data);
+                    _logger.LogInformation("Debug screenshot saved to {Path}", path);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to save debug screenshot");
+                }
+            }
+
             return data;
         }
         catch (Exception ex)
@@ -270,6 +289,8 @@ public class AdbService
         // Neues Image erstellen
         var image = new Image<Rgba32>(width, height);
 
+        _logger.LogDebug("Converting framebuffer to ImageSharp. Bpp: {Bpp}, BufferLength: {Length}", bpp, buffer.Length);
+
         // Pixel Format von Android ist meistens RGBA oder BGRA
         image.ProcessPixelRows(accessor =>
         {
@@ -283,7 +304,18 @@ public class AdbService
                     
                     if (offset + 3 < buffer.Length)
                     {
-                        // Android ist meistens RGBA
+                        // Android ist meistens RGBA oder BGRA. 
+                        // Wir probieren RGBA, aber loggen die ersten paar Bytes falls nötig.
+                        if (y == 0 && x == 0)
+                        {
+                            _logger.LogInformation("First pixel bytes: {B1}, {B2}, {B3}, {B4}", 
+                                buffer[offset], buffer[offset + 1], buffer[offset + 2], buffer[offset + 3]);
+                        }
+                        
+                        // Detect BGRA vs RGBA (heuristic: if it's all 0 or 255 it's hard, but redroid is usually RGBA)
+                        // Redroid usually uses RGBA (R at offset 0). BlueStacks often uses BGRA (B at offset 0).
+                        // If the first pixel seems to have R=0 and B>0 when we expect blue, or vice versa, we might need to swap.
+                        // For now, let's stick to RGBA as default.
                         row[x] = new Rgba32(
                             buffer[offset],     // R
                             buffer[offset + 1], // G
@@ -443,6 +475,11 @@ public class AdbService
             _logger.LogError(ex, "Error getting framebuffer");
             return null;
         }
+    }
+
+    public void RequestDebugScreenshot(string path)
+    {
+        _debugSavePath = path;
     }
 
     public bool IsConnected => _device != null && _device.State == DeviceState.Online;

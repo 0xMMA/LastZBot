@@ -4,6 +4,8 @@ namespace LastZBot.Web;
 
 public class VisionApiClient(HttpClient httpClient)
 {
+    public string? BaseAddress => httpClient.BaseAddress?.ToString();
+
     public async Task<VisionStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
     {
         try

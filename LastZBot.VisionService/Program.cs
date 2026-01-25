@@ -165,6 +165,14 @@ app.MapPost("/api/shell", async (ShellRequest request, AdbService adb) =>
     return Results.Ok(new { Output = result });
 });
 
+app.MapPost("/api/debug/save-screenshot", (AdbService adb) =>
+{
+    var fileName = $"screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+    var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "debug", fileName);
+    adb.RequestDebugScreenshot(path);
+    return Results.Ok(new { Message = "Screenshot will be saved on next capture", Path = path });
+});
+
 app.Run();
 
 // Request DTOs
