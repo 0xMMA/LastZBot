@@ -4,7 +4,24 @@ namespace LastZBot.Web;
 
 public class VisionApiClient(HttpClient httpClient)
 {
-    public string? BaseAddress => httpClient.BaseAddress?.ToString();
+    public async Task<string?> GetBaseAddressAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Use GetStringAsync on a known endpoint to force resolution if needed, 
+            // but HttpClient should already have it.
+            // However, httpClient.BaseAddress is what we set in Program.cs.
+            // Aspire's Service Discovery usually handles resolution during the request.
+            
+            // If we are using logical names, we can try to "ping" the service to ensure discovery is active.
+            await httpClient.GetAsync("/api/status", cancellationToken);
+            return httpClient.BaseAddress?.ToString();
+        }
+        catch (Exception)
+        {
+            return httpClient.BaseAddress?.ToString();
+        }
+    }
 
     public async Task<VisionStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
     {

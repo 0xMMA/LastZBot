@@ -22,7 +22,10 @@ builder.Services.AddSingleton<AdbService>(sp =>
 builder.Services.AddHostedService<Worker>();
 
 // Add SignalR
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10MB
+});
 builder.Services.AddHostedService<FrameBroadcaster>();
 
 // Add CORS for web frontend
@@ -82,7 +85,7 @@ app.MapGet("/api/screenshot", async (AdbService adb) =>
     }
 
     var base64 = Convert.ToBase64String(screenshot);
-    return Results.Ok(new { Image = $"data:image/png;base64,{base64}" });
+    return Results.Ok(new { Image = $"data:image/jpeg;base64,{base64}" });
 });
 
 // Capture screenshot - returns raw PNG image
@@ -99,7 +102,7 @@ app.MapGet("/api/screenshot/raw", async (AdbService adb) =>
         return Results.Problem("Failed to capture screenshot");
     }
 
-    return Results.File(screenshot, "image/png", "screenshot.png");
+    return Results.File(screenshot, "image/jpeg", "screenshot.jpg");
 });
 
 // Tap at coordinates

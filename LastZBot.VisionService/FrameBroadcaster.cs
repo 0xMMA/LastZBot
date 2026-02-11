@@ -18,6 +18,8 @@ public class FrameBroadcaster : BackgroundService
         _hubContext = hubContext;
     }
 
+    private int _logCounter = 0;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("FrameBroadcaster is starting...");
@@ -34,9 +36,13 @@ public class FrameBroadcaster : BackgroundService
                     var frame = await _adbService.CaptureScreenshotAsync(); 
                     if (frame != null)
                     {
-                        _logger.LogInformation("Broadcasting frame {Size} bytes", frame.Length);
+                        if (_logCounter++ % 10 == 0)
+                        {
+                            _logger.LogInformation("Broadcasting frame {Size} bytes", frame.Length);
+                        }
                         var base64 = Convert.ToBase64String(frame);
-                        await _hubContext.Clients.All.SendAsync("ReceiveFrame", $"data:image/png;base64,{base64}", stoppingToken);
+                        var frameData = $"data:image/jpeg;base64,{base64}";
+                        await _hubContext.Clients.All.SendAsync("ReceiveFrame", frameData, stoppingToken);
                     }
                     else
                     {

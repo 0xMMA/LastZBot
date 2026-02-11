@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.SignalR.Client
 @inject VisionApiClient VisionApi
@@ -17,37 +17,95 @@
     
     private HubConnection? hubConnection;
     private string? liveFrameData;
-    private int frameCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
         await CheckConnectionStatus();
         
-        var visionServiceUrl = VisionApi.BaseAddress;
-        Console.WriteLine($"[DEBUG_LOG] VisionService URL from ApiClient: {visionServiceUrl}");
+        var visionServiceUrl = await VisionApi.GetBaseAddressAsync();
+        
+        // Try to get from configuration as fallback/override
+        // Aspire environment variables are usually in the form: services__visionservice__http__0
+        // We also check for the full URL directly from environment variables.
+        var configUrl = Configuration["services:visionservice:http:0"] 
+                        ?? Configuration["services:visionservice:https:0"]
+                        ?? Configuration["services__visionservice__http__0"]
+                        ?? Configuration["services__visionservice__https__0"];
+        
+        if (string.IsNullOrEmpty(configUrl))
+        {
+            // Another common Aspire pattern is via individual host/port variables
+            var host = Configuration["services__visionservice__http__host"] ?? Configuration["services:visionservice:http:host"];
+            var port = Configuration["services__visionservice__http__port"] ?? Configuration["services:visionservice:http:port"];
+            if (!string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(port))
+            {
+                configUrl = $"http://{host}:{port}";
+            }
+        }
+
+        // If it's STILL empty, let's look for ANY environment variable that contains 'visionservice' and 'http'
+        if (string.IsNullOrEmpty(configUrl))
+        {
+            foreach(var kvp in Configuration.AsEnumerable())
+            {
+                if (kvp.Key.Contains("visionservice", StringComparison.OrdinalIgnoreCase) && 
+                    kvp.Value != null && 
+                    (kvp.Value.StartsWith("http://") || kvp.Value.StartsWith("https://")))
+                {
+                    configUrl = kvp.Value;
+                    break;
+                }
+            }
+        }
+
+        if (!string.IsNullOrEmpty(configUrl))
+        {
+            // If the ApiClient gives us a logical name (e.g. http://visionservice), 
+            // but we have a physical one in config (e.g. http://localhost:5231), use config.
+            // We check for "visionservice" and lack of a port (which is common for logical names in this project).
+            if (visionServiceUrl != null && visionServiceUrl.Contains("visionservice") && (visionServiceUrl.EndsWith("visionservice") || visionServiceUrl.EndsWith("visionservice/")))
+            {
+                 visionServiceUrl = configUrl;
+            }
+        }
         
         if (string.IsNullOrEmpty(visionServiceUrl))
         {
-             // Fallback for development
-             visionServiceUrl = "http://localhost:5031"; 
-             Console.WriteLine($"[DEBUG_LOG] Using fallback VisionService URL: {visionServiceUrl}");
+             visionServiceUrl = "http://localhost:5031";
+        }
+        
+        // Handle https+http:// scheme from Aspire Service Discovery
+        if (visionServiceUrl.StartsWith("https+http://", StringComparison.OrdinalIgnoreCase))
+        {
+            // For SignalR we need a real protocol. 
+            // In Aspire development, it's usually http.
+            visionServiceUrl = "http://" + visionServiceUrl.Substring("https+http://".Length);
+            
+            // If it's still 'visionservice' hostname, SignalR might fail to resolve it if it's not in hosts file.
+            // But since this is Blazor Server, the server should be able to resolve it if Service Discovery is configured globally.
+        }
+        else if (visionServiceUrl.StartsWith("http+https://", StringComparison.OrdinalIgnoreCase))
+        {
+            visionServiceUrl = "https://" + visionServiceUrl.Substring("http+https://".Length);
+        }
+        else if (visionServiceUrl.Contains("visionservice") && !visionServiceUrl.Contains(":"))
+        {
+            // If it's just http://visionservice without a port, Aspire might be mapping it to 80 
+            // but the actual service might be on a different port.
+            // Usually Aspire environment variables have the actual addresses.
         }
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl($"{visionServiceUrl.TrimEnd('/')}/hubs/frame")
             .WithAutomaticReconnect()
-            .ConfigureLogging(logging => {
-                logging.SetMinimumLevel(LogLevel.Debug);
-            })
             .Build();
+
+        hubConnection.ServerTimeout = TimeSpan.FromSeconds(30);
+        hubConnection.HandshakeTimeout = TimeSpan.FromSeconds(15);
+        try { ((dynamic)hubConnection).MaximumReceiveMessageSize = 10L * 1024 * 1024; } catch { }
 
         hubConnection.On<string>("ReceiveFrame", (frame) =>
         {
-            // Only log every 50th frame to avoid spam but confirm it's working
-            if (frameCount++ % 50 == 0) {
-                 Console.WriteLine($"[DEBUG_LOG] Received frame {frameCount} from SignalR. Size: {frame.Length} chars. Start: {frame.Substring(0, Math.Min(30, frame.Length))}");
-            }
-            
             liveFrameData = frame;
             if (showLiveView)
             {

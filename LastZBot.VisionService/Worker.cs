@@ -15,14 +15,13 @@ public class Worker : BackgroundService
     {
         _logger.LogInformation("VisionService is starting...");
 
-        // Connect to ADB device
-        var connected = await _adbService.ConnectAsync();
-        if (!connected)
-        {
-            _logger.LogWarning("Failed to connect to ADB device. Retrying in 10 seconds...");
-            await Task.Delay(10000, stoppingToken);
-            connected = await _adbService.ConnectAsync();
-        }
+        // Redroid (Android in Docker) takes 30-60+ seconds to boot and expose ADB.
+        // Wait before first connect attempt.
+        _logger.LogInformation("Waiting 30 seconds for Redroid to boot and expose ADB...");
+        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+
+        // Connect with retries
+        var connected = await ConnectWithRetriesAsync(stoppingToken);
 
         if (connected)
         {
@@ -44,5 +43,25 @@ public class Worker : BackgroundService
 
             await Task.Delay(30000, stoppingToken); // Check every 30 seconds
         }
+    }
+
+    private async Task<bool> ConnectWithRetriesAsync(CancellationToken stoppingToken)
+    {
+        const int maxAttempts = 15;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            _logger.LogInformation("ADB connect attempt {Attempt}/{MaxAttempts}", attempt, maxAttempts);
+            var connected = await _adbService.ConnectAsync();
+            if (connected)
+                return true;
+
+            if (attempt < maxAttempts)
+            {
+                _logger.LogWarning("Connect failed. Retrying in 10 seconds...");
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            }
+        }
+
+        return false;
     }
 }

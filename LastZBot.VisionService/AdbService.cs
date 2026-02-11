@@ -37,6 +37,14 @@ public class AdbService
         var connectHost = host ?? _host;
         var connectPort = port ?? _port;
 
+        // VisionService runs on the host. If Aspire passes container name "redroid", host cannot resolve it.
+        // Fallback to localhost for host-side ADB connections.
+        if (string.Equals(connectHost, "redroid", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("Host 'redroid' cannot be resolved from host process. Using 127.0.0.1");
+            connectHost = "127.0.0.1";
+        }
+
         try
         {
             // Start ADB server if not running
@@ -206,7 +214,10 @@ public class AdbService
 
         try
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             using var framebuffer = await _adbClient.GetFrameBufferAsync(_device, CancellationToken.None);
+            var fetchTime = sw.ElapsedMilliseconds;
+            
             if (framebuffer == null)
             {
                 _logger.LogWarning("GetFrameBufferAsync returned null");
@@ -224,6 +235,8 @@ public class AdbService
                 framebuffer.Data?.Length ?? 0);
 
             using var imageSharp = ToImageSharp(framebuffer);
+            var convertTime = sw.ElapsedMilliseconds - fetchTime;
+            
             if (imageSharp == null)
             {
                 _logger.LogWarning("Failed to convert FrameBuffer to ImageSharp image. Header: {Width}x{Height}, Bpp: {Bpp}, DataLength: {DataLength}",
@@ -233,9 +246,11 @@ public class AdbService
             
             using var ms = new MemoryStream();
             await imageSharp.SaveAsJpegAsync(ms, new JpegEncoder { Quality = 75 });
+            var saveTime = sw.ElapsedMilliseconds - fetchTime - convertTime;
             
             var data = ms.ToArray();
-            _logger.LogDebug("Screenshot captured via FrameBuffer: {Size} bytes", data.Length);
+            _logger.LogDebug("Screenshot captured via FrameBuffer: {Size} bytes. Fetch: {Fetch}ms, Convert: {Convert}ms, Save: {Save}ms", 
+                data.Length, fetchTime, convertTime, saveTime);
 
             if (_debugSavePath != null)
             {
