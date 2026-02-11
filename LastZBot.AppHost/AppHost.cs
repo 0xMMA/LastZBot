@@ -18,15 +18,12 @@ var redroid = builder.AddContainer("redroid", "redroid/redroid", "14.0.0-latest"
     .WithEnvironment("redroid.height", "1280")
     .WithEnvironment("redroid.dpi", "320");
 
-// Bot service - coordinates automation tasks
-var botService = builder.AddProject<Projects.LastZBot_BotService>("botservice")
-    .WithReference(postgres);
-
-// Vision service - handles ADB connection and screen capture
-// VisionService runs on the host (not in container). Aspire 9.5+ resolves container endpoint Host to
+// Bot service - coordinates automation tasks, device gateway (ADB, screenshot, tap, live stream)
+// BotService runs on the host (not in container). Aspire 9.5+ resolves container endpoint Host to
 // the container name ("redroid"), which host processes cannot resolve. Use 127.0.0.1 and the
 // published port (5555) so the host ADB client can connect to the Redroid container.
-var visionService = builder.AddProject<Projects.LastZBot_VisionService>("visionservice")
+var botService = builder.AddProject<Projects.LastZBot_BotService>("botservice")
+    .WithReference(postgres)
     .WithHttpHealthCheck("/api/status")
     .WithEnvironment("Adb__Host", "127.0.0.1")
     .WithEnvironment("Adb__Port", "5555")
@@ -43,7 +40,6 @@ var web = builder.AddProject<Projects.LastZBot_Web>("webfrontend")
     .WithHttpHealthCheck("/health")
     .WithReference(apiService)
     .WithReference(botService)
-    .WithReference(visionService)
     .WaitFor(apiService);
 
 builder.Build().Run();

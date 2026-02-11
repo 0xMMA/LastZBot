@@ -4,7 +4,7 @@
 
 ## Prerequisites for Linux Development
 This project uses **Redroid** (Android in Docker). 
-While the Android device runs in a container, the `VisionService` (running on your host) requires a local ADB client to bridge the connection.
+While the Android device runs in a container, the `BotService` (running on your host) requires a local ADB client to bridge the connection.
 
 ### 1. Install .NET SDK
 As we use Ubuntu Desktop for development, follow these steps to install the .NET SDK:

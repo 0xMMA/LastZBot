@@ -12,7 +12,6 @@
     <ProjectReference Include="..\LastZBot.ApiService\LastZBot.ApiService.csproj" />
     <ProjectReference Include="..\LastZBot.Web\LastZBot.Web.csproj" />
     <ProjectReference Include="..\LastZBot.BotService\LastZBot.BotService.csproj" />
-    <ProjectReference Include="..\LastZBot.VisionService\LastZBot.VisionService.csproj" />
   </ItemGroup>
 
   <ItemGroup>

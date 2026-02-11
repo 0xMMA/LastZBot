@@ -6,7 +6,7 @@ public class VisionApiClient(HttpClient httpClient)
 {
     public async Task<string?> GetBaseAddressAsync(CancellationToken cancellationToken = default)
     {
-        // Make a request so Service Discovery resolves the logical "visionservice" to the actual URL.
+        // Make a request so Service Discovery resolves the logical "botservice" to the actual URL.
         // The RequestMessage on the response contains the resolved request URI.
         const int maxRetries = 5;
         for (var attempt = 1; attempt <= maxRetries; attempt++)

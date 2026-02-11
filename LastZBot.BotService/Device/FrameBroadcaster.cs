@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace LastZBot.VisionService;
+namespace LastZBot.BotService.Device;
 
 public class FrameBroadcaster : BackgroundService
 {
@@ -31,9 +31,7 @@ public class FrameBroadcaster : BackgroundService
                 try
                 {
                     _logger.LogDebug("Capturing frame...");
-                    // Use GetFrameAsync which might be faster, but it's raw data.
-                    // For now, let's stick to CaptureScreenshotAsync but add more logging.
-                    var frame = await _adbService.CaptureScreenshotAsync(); 
+                    var frame = await _adbService.CaptureScreenshotAsync();
                     if (frame != null)
                     {
                         if (_logCounter++ % 10 == 0)

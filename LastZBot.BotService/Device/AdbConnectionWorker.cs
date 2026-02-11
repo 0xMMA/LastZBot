@@ -1,11 +1,11 @@
-namespace LastZBot.VisionService;
+namespace LastZBot.BotService.Device;
 
-public class Worker : BackgroundService
+public class AdbConnectionWorker : BackgroundService
 {
-    private readonly ILogger<Worker> _logger;
+    private readonly ILogger<AdbConnectionWorker> _logger;
     private readonly AdbService _adbService;
 
-    public Worker(ILogger<Worker> logger, AdbService adbService)
+    public AdbConnectionWorker(ILogger<AdbConnectionWorker> logger, AdbService adbService)
     {
         _logger = logger;
         _adbService = adbService;
@@ -13,7 +13,7 @@ public class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("VisionService is starting...");
+        _logger.LogInformation("AdbConnectionWorker is starting...");
 
         // Redroid (Android in Docker) takes 30-60+ seconds to boot and expose ADB.
         // Wait before first connect attempt.

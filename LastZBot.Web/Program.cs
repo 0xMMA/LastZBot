@@ -21,7 +21,7 @@ builder.Services.AddHttpClient<WeatherApiClient>(client =>
 
 builder.Services.AddHttpClient<VisionApiClient>(client =>
     {
-        client.BaseAddress = new("https+http://visionservice");
+        client.BaseAddress = new("https+http://botservice");
     });
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);

@@ -28,12 +28,12 @@
     {
         await CheckConnectionStatus();
         
-        // GetBaseAddressAsync makes a request so Service Discovery resolves visionservice to the actual URL
+        // GetBaseAddressAsync makes a request so Service Discovery resolves botservice to the actual URL
         var visionServiceUrl = await VisionApi.GetBaseAddressAsync();
         
         if (string.IsNullOrEmpty(visionServiceUrl))
         {
-            visionServiceUrl = Configuration["services:visionservice:http:0"] ?? "http://localhost:5031";
+            visionServiceUrl = Configuration["services:botservice:http:0"] ?? "http://localhost:5031";
         }
         else if (visionServiceUrl.StartsWith("https+http://", StringComparison.OrdinalIgnoreCase))
         {
@@ -43,10 +43,10 @@
         {
             visionServiceUrl = "https://" + visionServiceUrl["http+https://".Length..];
         }
-        // If still a logical host like "visionservice" without port, try Aspire config
-        if (visionServiceUrl.Contains("visionservice") && !visionServiceUrl.Contains("localhost"))
+        // If still a logical host like "botservice" without port, try Aspire config
+        if (visionServiceUrl.Contains("botservice") && !visionServiceUrl.Contains("localhost"))
         {
-            visionServiceUrl = Configuration["services:visionservice:http:0"] ?? visionServiceUrl;
+            visionServiceUrl = Configuration["services:botservice:http:0"] ?? visionServiceUrl;
         }
 
         hubConnection = new HubConnectionBuilder()

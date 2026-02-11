@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace LastZBot.VisionService;
+namespace LastZBot.BotService.Device;
 
 public class FrameHub : Hub
 {
@@ -19,7 +19,7 @@ public class FrameHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        _logger.LogInformation("Client disconnected from FrameHub: {ConnectionId}. Error: {Error}", 
+        _logger.LogInformation("Client disconnected from FrameHub: {ConnectionId}. Error: {Error}",
             Context.ConnectionId, exception?.Message ?? "None");
         await base.OnDisconnectedAsync(exception);
     }
