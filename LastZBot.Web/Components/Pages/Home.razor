@@ -1,8 +1,11 @@
 @page "/"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Hosting
 @using Microsoft.AspNetCore.SignalR.Client
 @inject VisionApiClient VisionApi
 @inject IConfiguration Configuration
+@inject IWebHostEnvironment HostEnvironment
 @implements IAsyncDisposable
 
 <PageTitle>Last Z Bot - Dashboard</PageTitle>
@@ -17,82 +20,33 @@
     
     private HubConnection? hubConnection;
     private string? liveFrameData;
+    private int _frameCount;
+    private int _displayFps;
+    private DateTime _fpsWindowStart = DateTime.UtcNow;
 
     protected override async Task OnInitializedAsync()
     {
         await CheckConnectionStatus();
         
+        // GetBaseAddressAsync makes a request so Service Discovery resolves visionservice to the actual URL
         var visionServiceUrl = await VisionApi.GetBaseAddressAsync();
-        
-        // Try to get from configuration as fallback/override
-        // Aspire environment variables are usually in the form: services__visionservice__http__0
-        // We also check for the full URL directly from environment variables.
-        var configUrl = Configuration["services:visionservice:http:0"] 
-                        ?? Configuration["services:visionservice:https:0"]
-                        ?? Configuration["services__visionservice__http__0"]
-                        ?? Configuration["services__visionservice__https__0"];
-        
-        if (string.IsNullOrEmpty(configUrl))
-        {
-            // Another common Aspire pattern is via individual host/port variables
-            var host = Configuration["services__visionservice__http__host"] ?? Configuration["services:visionservice:http:host"];
-            var port = Configuration["services__visionservice__http__port"] ?? Configuration["services:visionservice:http:port"];
-            if (!string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(port))
-            {
-                configUrl = $"http://{host}:{port}";
-            }
-        }
-
-        // If it's STILL empty, let's look for ANY environment variable that contains 'visionservice' and 'http'
-        if (string.IsNullOrEmpty(configUrl))
-        {
-            foreach(var kvp in Configuration.AsEnumerable())
-            {
-                if (kvp.Key.Contains("visionservice", StringComparison.OrdinalIgnoreCase) && 
-                    kvp.Value != null && 
-                    (kvp.Value.StartsWith("http://") || kvp.Value.StartsWith("https://")))
-                {
-                    configUrl = kvp.Value;
-                    break;
-                }
-            }
-        }
-
-        if (!string.IsNullOrEmpty(configUrl))
-        {
-            // If the ApiClient gives us a logical name (e.g. http://visionservice), 
-            // but we have a physical one in config (e.g. http://localhost:5231), use config.
-            // We check for "visionservice" and lack of a port (which is common for logical names in this project).
-            if (visionServiceUrl != null && visionServiceUrl.Contains("visionservice") && (visionServiceUrl.EndsWith("visionservice") || visionServiceUrl.EndsWith("visionservice/")))
-            {
-                 visionServiceUrl = configUrl;
-            }
-        }
         
         if (string.IsNullOrEmpty(visionServiceUrl))
         {
-             visionServiceUrl = "http://localhost:5031";
+            visionServiceUrl = Configuration["services:visionservice:http:0"] ?? "http://localhost:5031";
         }
-        
-        // Handle https+http:// scheme from Aspire Service Discovery
-        if (visionServiceUrl.StartsWith("https+http://", StringComparison.OrdinalIgnoreCase))
+        else if (visionServiceUrl.StartsWith("https+http://", StringComparison.OrdinalIgnoreCase))
         {
-            // For SignalR we need a real protocol. 
-            // In Aspire development, it's usually http.
-            visionServiceUrl = "http://" + visionServiceUrl.Substring("https+http://".Length);
-            
-            // If it's still 'visionservice' hostname, SignalR might fail to resolve it if it's not in hosts file.
-            // But since this is Blazor Server, the server should be able to resolve it if Service Discovery is configured globally.
+            visionServiceUrl = "http://" + visionServiceUrl["https+http://".Length..];
         }
         else if (visionServiceUrl.StartsWith("http+https://", StringComparison.OrdinalIgnoreCase))
         {
-            visionServiceUrl = "https://" + visionServiceUrl.Substring("http+https://".Length);
+            visionServiceUrl = "https://" + visionServiceUrl["http+https://".Length..];
         }
-        else if (visionServiceUrl.Contains("visionservice") && !visionServiceUrl.Contains(":"))
+        // If still a logical host like "visionservice" without port, try Aspire config
+        if (visionServiceUrl.Contains("visionservice") && !visionServiceUrl.Contains("localhost"))
         {
-            // If it's just http://visionservice without a port, Aspire might be mapping it to 80 
-            // but the actual service might be on a different port.
-            // Usually Aspire environment variables have the actual addresses.
+            visionServiceUrl = Configuration["services:visionservice:http:0"] ?? visionServiceUrl;
         }
 
         hubConnection = new HubConnectionBuilder()
@@ -107,6 +61,14 @@
         hubConnection.On<string>("ReceiveFrame", (frame) =>
         {
             liveFrameData = frame;
+            _frameCount++;
+            var now = DateTime.UtcNow;
+            if ((now - _fpsWindowStart).TotalSeconds >= 1)
+            {
+                _displayFps = _frameCount;
+                _frameCount = 0;
+                _fpsWindowStart = now;
+            }
             if (showLiveView)
             {
                 InvokeAsync(StateHasChanged);
@@ -256,7 +218,13 @@
                         <div style="padding: 1.25rem;">
                             @if (!string.IsNullOrEmpty(liveFrameData))
                             {
-                                <img src="@liveFrameData" alt="Android Live View" class="img-fluid" style="max-height: 600px;" />
+                                <div class="position-relative d-inline-block">
+                                    <img src="@liveFrameData" alt="Android Live View" class="img-fluid" style="max-height: 600px;" />
+                                    @if (HostEnvironment.IsDevelopment())
+                                    {
+                                        <span class="badge bg-dark bg-opacity-75 position-absolute top-0 start-0 m-2 px-2 py-1" style="font-family: monospace; font-size: 0.8rem;">@_displayFps FPS</span>
+                                    }
+                                </div>
                             }
                             else
                             {

@@ -6,21 +6,29 @@ public class VisionApiClient(HttpClient httpClient)
 {
     public async Task<string?> GetBaseAddressAsync(CancellationToken cancellationToken = default)
     {
-        try
+        // Make a request so Service Discovery resolves the logical "visionservice" to the actual URL.
+        // The RequestMessage on the response contains the resolved request URI.
+        const int maxRetries = 5;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            // Use GetStringAsync on a known endpoint to force resolution if needed, 
-            // but HttpClient should already have it.
-            // However, httpClient.BaseAddress is what we set in Program.cs.
-            // Aspire's Service Discovery usually handles resolution during the request.
-            
-            // If we are using logical names, we can try to "ping" the service to ensure discovery is active.
-            await httpClient.GetAsync("/api/status", cancellationToken);
-            return httpClient.BaseAddress?.ToString();
+            try
+            {
+                var response = await httpClient.GetAsync("/api/status", cancellationToken);
+                var requestUri = response.RequestMessage?.RequestUri;
+                if (requestUri != null)
+                {
+                    var baseUri = new Uri(requestUri.GetLeftPart(UriPartial.Authority));
+                    return baseUri.ToString();
+                }
+            }
+            catch (Exception)
+            {
+                if (attempt == maxRetries)
+                    break;
+                await Task.Delay(500 * attempt, cancellationToken);
+            }
         }
-        catch (Exception)
-        {
-            return httpClient.BaseAddress?.ToString();
-        }
+        return httpClient.BaseAddress?.ToString();
     }
 
     public async Task<VisionStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
