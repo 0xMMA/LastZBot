@@ -18,6 +18,8 @@ public class AdbService
     private string _host = "127.0.0.1";
     private int _port = 5555; // Redroid default port
     private string? _debugSavePath;
+    private int? _deviceWidth;
+    private int? _deviceHeight;
 
     public AdbService(ILogger<AdbService> logger, IHostEnvironment environment)
     {
@@ -25,10 +27,12 @@ public class AdbService
         _environment = environment;
     }
 
-    public void ConfigureConnection(string host, int port)
+    public void ConfigureConnection(string host, int port, int? deviceWidth = null, int? deviceHeight = null)
     {
         _host = host;
         _port = port;
+        if (deviceWidth.HasValue) _deviceWidth = deviceWidth;
+        if (deviceHeight.HasValue) _deviceHeight = deviceHeight;
         _logger.LogInformation("ADB connection configured for {Host}:{Port}", host, port);
     }
 
@@ -228,6 +232,11 @@ public class AdbService
             {
                 _logger.LogWarning("Framebuffer has invalid dimensions: {Width}x{Height}",
                     framebuffer.Header.Width, framebuffer.Header.Height);
+            }
+            else
+            {
+                _deviceWidth ??= (int)framebuffer.Header.Width;
+                _deviceHeight ??= (int)framebuffer.Header.Height;
             }
 
             _logger.LogDebug("Framebuffer received: {Width}x{Height}, Bpp: {Bpp}, Size: {Size}",
@@ -495,4 +504,8 @@ public class AdbService
     public bool IsConnected => _device != null && _device.State == DeviceState.Online;
 
     public string? DeviceSerial => _device?.Serial;
+
+    public int? DeviceWidth => _deviceWidth;
+
+    public int? DeviceHeight => _deviceHeight;
 }

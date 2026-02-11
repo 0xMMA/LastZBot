@@ -1,11 +1,15 @@
 @page "/"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Hosting
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.JSInterop
+@using LastZBot.Web.Services
 @inject VisionApiClient VisionApi
 @inject IConfiguration Configuration
 @inject IWebHostEnvironment HostEnvironment
+@inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
 
 <PageTitle>Last Z Bot - Dashboard</PageTitle>
@@ -16,7 +20,14 @@
     private bool isCapturing = false;
     private bool isConnected = false;
     private string? deviceSerial;
+    private int? deviceWidth;
+    private int? deviceHeight;
     private bool showLiveView = true;
+    
+    private string? tapMessage;
+    private string tapMessageType = "success";
+    private ElementReference liveViewImgRef;
+    private ElementReference screenshotImgRef;
     
     private HubConnection? hubConnection;
     private string? liveFrameData;
@@ -107,8 +118,57 @@
         {
             isConnected = status.Connected;
             deviceSerial = status.Device;
+            deviceWidth = status.DeviceWidth;
+            deviceHeight = status.DeviceHeight;
         }
     }
+
+    private async Task HandleImageClick(MouseEventArgs e, ElementReference imgRef)
+    {
+        if (!isConnected)
+        {
+            tapMessage = "Device not connected";
+            tapMessageType = "danger";
+            await ClearTapMessageAfterDelay();
+            return;
+        }
+
+        var w = deviceWidth ?? 720;
+        var h = deviceHeight ?? 1280;
+
+        try
+        {
+            var module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "/js/coordinateHelpers.js");
+            var size = await module.InvokeAsync<BoundingRect>("getElementSize", imgRef);
+            await module.DisposeAsync();
+
+            var (deviceX, deviceY) = CoordinateMapper.DisplayToDevice(
+                e.OffsetX, e.OffsetY,
+                size.Width, size.Height,
+                w, h);
+
+            var success = await VisionApi.TapAsync(deviceX, deviceY);
+            tapMessage = success ? $"Tap at ({deviceX}, {deviceY})" : "Tap failed";
+            tapMessageType = success ? "success" : "danger";
+        }
+        catch (Exception ex)
+        {
+            tapMessage = $"Tap error: {ex.Message}";
+            tapMessageType = "danger";
+        }
+
+        await ClearTapMessageAfterDelay();
+    }
+
+    private async Task ClearTapMessageAfterDelay()
+    {
+        StateHasChanged();
+        await Task.Delay(2000);
+        tapMessage = null;
+        StateHasChanged();
+    }
+
+    private record BoundingRect(double Width, double Height);
 
     private async Task ConnectToDevice()
     {
@@ -207,10 +267,14 @@
                         }
                     </div>
                 </div>
-                <div class="card-body text-center" style="min-height: 400px; background: #1a1a2e; padding: 0;">
+                <div class="card-body text-center position-relative" style="min-height: 400px; background: #1a1a2e; padding: 0;">
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
                         <div class="alert alert-danger m-3">@errorMessage</div>
+                    }
+                    @if (!string.IsNullOrEmpty(tapMessage))
+                    {
+                        <div class="alert alert-@tapMessageType m-3 position-absolute top-0 end-0" style="z-index: 10; min-width: 200px;">@tapMessage</div>
                     }
 
                     @if (showLiveView)
@@ -219,7 +283,9 @@
                             @if (!string.IsNullOrEmpty(liveFrameData))
                             {
                                 <div class="position-relative d-inline-block">
-                                    <img src="@liveFrameData" alt="Android Live View" class="img-fluid" style="max-height: 600px;" />
+                                    <img src="@liveFrameData" alt="Android Live View" class="img-fluid" style="max-height: 600px; cursor: pointer;"
+                                         @ref="liveViewImgRef"
+                                         @onclick="e => HandleImageClick(e, liveViewImgRef)" />
                                     @if (HostEnvironment.IsDevelopment())
                                     {
                                         <span class="badge bg-dark bg-opacity-75 position-absolute top-0 start-0 m-2 px-2 py-1" style="font-family: monospace; font-size: 0.8rem;">@_displayFps FPS</span>
@@ -244,7 +310,9 @@
                         <div style="padding: 1.25rem;">
                             @if (!string.IsNullOrEmpty(screenshotData))
                             {
-                                <img src="@screenshotData" alt="Android Screenshot" class="img-fluid" style="max-height: 500px;" />
+                                <img src="@screenshotData" alt="Android Screenshot" class="img-fluid" style="max-height: 500px; cursor: pointer;"
+                                     @ref="screenshotImgRef"
+                                     @onclick="e => HandleImageClick(e, screenshotImgRef)" />
                             }
                             else
                             {

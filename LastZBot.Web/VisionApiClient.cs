@@ -119,7 +119,7 @@ public class VisionApiClient(HttpClient httpClient)
     }
 }
 
-public record VisionStatus(bool Connected, string? Device);
+public record VisionStatus(bool Connected, string? Device, int? DeviceWidth, int? DeviceHeight);
 public record ConnectResult(bool Success, string? Device);
 public record ScreenshotResult(string Image);
 public record SuccessResult(bool Success);

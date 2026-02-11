@@ -27,6 +27,8 @@ var botService = builder.AddProject<Projects.LastZBot_BotService>("botservice")
     .WithHttpHealthCheck("/api/status")
     .WithEnvironment("Adb__Host", "127.0.0.1")
     .WithEnvironment("Adb__Port", "5555")
+    .WithEnvironment("Adb__DeviceWidth", "720")
+    .WithEnvironment("Adb__DeviceHeight", "1280")
     .WaitFor(redroid);
 
 // API service for external integrations

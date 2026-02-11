@@ -19,6 +19,8 @@ builder.Services.AddHostedService<Worker>();
 // Default to Redroid on localhost if not overridden via Adb__Host and Adb__Port env vars
 var adbHost = builder.Configuration["Adb:Host"] ?? "127.0.0.1";
 var adbPort = builder.Configuration.GetValue<int>("Adb:Port", 5555);
+var adbDeviceWidth = builder.Configuration.GetValue<int?>("Adb:DeviceWidth");
+var adbDeviceHeight = builder.Configuration.GetValue<int?>("Adb:DeviceHeight");
 
 // Register AdbService as singleton
 builder.Services.AddSingleton<AdbService>(sp =>
@@ -26,7 +28,7 @@ builder.Services.AddSingleton<AdbService>(sp =>
     var logger = sp.GetRequiredService<ILogger<AdbService>>();
     var environment = sp.GetRequiredService<IHostEnvironment>();
     var service = new AdbService(logger, environment);
-    service.ConfigureConnection(adbHost, adbPort);
+    service.ConfigureConnection(adbHost, adbPort, adbDeviceWidth, adbDeviceHeight);
     return service;
 });
 
@@ -72,7 +74,9 @@ app.MapGet("/", (AdbService adb) => new
 app.MapGet("/api/status", (AdbService adb) => new
 {
     Connected = adb.IsConnected,
-    Device = adb.DeviceSerial
+    Device = adb.DeviceSerial,
+    DeviceWidth = adb.DeviceWidth,
+    DeviceHeight = adb.DeviceHeight
 });
 
 // Connect to device
