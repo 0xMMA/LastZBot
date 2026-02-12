@@ -28,6 +28,9 @@
     private string tapMessageType = "success";
     private ElementReference liveViewImgRef;
     private ElementReference screenshotImgRef;
+    private (double X, double Y)? _pointerDown;
+    private DotNetObjectReference<Home>? _pointerDownDotNetRef;
+    private string keyboardText = "";
     
     private HubConnection? hubConnection;
     private string? liveFrameData;
@@ -123,7 +126,9 @@
         }
     }
 
-    private async Task HandleImageClick(MouseEventArgs e, ElementReference imgRef)
+    private ElementReference _lastPointerDownImgRef;
+
+    private async Task HandleImagePointerDown(MouseEventArgs e, ElementReference imgRef)
     {
         if (!isConnected)
         {
@@ -133,27 +138,68 @@
             return;
         }
 
+        _lastPointerDownImgRef = imgRef;
+        _pointerDown = (e.OffsetX, e.OffsetY);
+        _pointerDownDotNetRef?.Dispose();
+        _pointerDownDotNetRef = DotNetObjectReference.Create(this);
+
+        try
+        {
+            var module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "/js/coordinateHelpers.js");
+            await module.InvokeVoidAsync("capturePointerUp", imgRef, _pointerDownDotNetRef);
+            await module.DisposeAsync();
+        }
+        catch (Exception ex)
+        {
+            tapMessage = $"Error: {ex.Message}";
+            tapMessageType = "danger";
+            _pointerDown = null;
+            await ClearTapMessageAfterDelay();
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnPointerUp(double offsetX, double offsetY)
+    {
+        if (!_pointerDown.HasValue || !isConnected) return;
+
+        var start = _pointerDown.Value;
+        _pointerDown = null;
+        _pointerDownDotNetRef?.Dispose();
+        _pointerDownDotNetRef = null;
+
         var w = deviceWidth ?? 720;
         var h = deviceHeight ?? 1280;
 
         try
         {
             var module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "/js/coordinateHelpers.js");
-            var size = await module.InvokeAsync<BoundingRect>("getElementSize", imgRef);
+            var size = await module.InvokeAsync<BoundingRect>("getElementSize", _lastPointerDownImgRef);
             await module.DisposeAsync();
 
-            var (deviceX, deviceY) = CoordinateMapper.DisplayToDevice(
-                e.OffsetX, e.OffsetY,
-                size.Width, size.Height,
-                w, h);
+            var (startX, startY) = CoordinateMapper.DisplayToDevice(start.X, start.Y, size.Width, size.Height, w, h);
+            var (endX, endY) = CoordinateMapper.DisplayToDevice(offsetX, offsetY, size.Width, size.Height, w, h);
 
-            var success = await VisionApi.TapAsync(deviceX, deviceY);
-            tapMessage = success ? $"Tap at ({deviceX}, {deviceY})" : "Tap failed";
-            tapMessageType = success ? "success" : "danger";
+            var dx = endX - startX;
+            var dy = endY - startY;
+            var distance = Math.Sqrt(dx * dx + dy * dy);
+
+            if (distance < 5)
+            {
+                var success = await VisionApi.TapAsync(startX, startY);
+                tapMessage = success ? $"Tap at ({startX}, {startY})" : "Tap failed";
+                tapMessageType = success ? "success" : "danger";
+            }
+            else
+            {
+                var success = await VisionApi.SwipeAsync(startX, startY, endX, endY, 300);
+                tapMessage = success ? $"Swipe ({startX},{startY}) -> ({endX},{endY})" : "Swipe failed";
+                tapMessageType = success ? "success" : "danger";
+            }
         }
         catch (Exception ex)
         {
-            tapMessage = $"Tap error: {ex.Message}";
+            tapMessage = $"Error: {ex.Message}";
             tapMessageType = "danger";
         }
 
@@ -166,6 +212,34 @@
         await Task.Delay(2000);
         tapMessage = null;
         StateHasChanged();
+    }
+
+    private async Task HandleKeyboardKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(keyboardText))
+        {
+            await SendText();
+        }
+    }
+
+    private async Task SendText()
+    {
+        if (!isConnected || string.IsNullOrEmpty(keyboardText)) return;
+        var text = keyboardText;
+        keyboardText = "";
+        var success = await VisionApi.SendTextAsync(text);
+        tapMessage = success ? "Text sent" : "Failed to send text";
+        tapMessageType = success ? "success" : "danger";
+        await ClearTapMessageAfterDelay();
+    }
+
+    private async Task PressKey(string keycode)
+    {
+        if (!isConnected) return;
+        var success = await VisionApi.PressKeyAsync(keycode);
+        tapMessage = success ? "Key sent" : "Failed to send key";
+        tapMessageType = success ? "success" : "danger";
+        await ClearTapMessageAfterDelay();
     }
 
     private record BoundingRect(double Width, double Height);
@@ -220,6 +294,8 @@
 
     public async ValueTask DisposeAsync()
     {
+        _pointerDownDotNetRef?.Dispose();
+        _pointerDownDotNetRef = null;
         if (hubConnection is not null)
         {
             await hubConnection.DisposeAsync();
@@ -231,7 +307,6 @@
     <div class="row mb-4">
         <div class="col-12">
             <h1>Last Z Bot Dashboard</h1>
-            <p class="text-muted">Monitor and control your Android automation bot</p>
         </div>
     </div>
 
@@ -282,10 +357,13 @@
                         <div style="padding: 1.25rem;">
                             @if (!string.IsNullOrEmpty(liveFrameData))
                             {
+                                <div class="small text-muted mb-2">Click to tap, drag to swipe</div>
                                 <div class="position-relative d-inline-block">
-                                    <img src="@liveFrameData" alt="Android Live View" class="img-fluid" style="max-height: 600px; cursor: pointer;"
+                                    <img src="@liveFrameData" alt="Android Live View" class="img-fluid" draggable="false"
+                                         style="max-height: 600px; cursor: pointer; user-select: none;"
                                          @ref="liveViewImgRef"
-                                         @onclick="e => HandleImageClick(e, liveViewImgRef)" />
+                                         @onmousedown="e => HandleImagePointerDown(e, liveViewImgRef)"
+                                         @ondragstart:preventDefault="true" />
                                     @if (HostEnvironment.IsDevelopment())
                                     {
                                         <span class="badge bg-dark bg-opacity-75 position-absolute top-0 start-0 m-2 px-2 py-1" style="font-family: monospace; font-size: 0.8rem;">@_displayFps FPS</span>
@@ -310,9 +388,12 @@
                         <div style="padding: 1.25rem;">
                             @if (!string.IsNullOrEmpty(screenshotData))
                             {
-                                <img src="@screenshotData" alt="Android Screenshot" class="img-fluid" style="max-height: 500px; cursor: pointer;"
+                                <div class="small text-muted mb-2">Click to tap, drag to swipe</div>
+                                <img src="@screenshotData" alt="Android Screenshot" class="img-fluid" draggable="false"
+                                     style="max-height: 500px; cursor: pointer; user-select: none;"
                                      @ref="screenshotImgRef"
-                                     @onclick="e => HandleImageClick(e, screenshotImgRef)" />
+                                     @onmousedown="e => HandleImagePointerDown(e, screenshotImgRef)"
+                                     @ondragstart:preventDefault="true" />
                             }
                             else
                             {
@@ -361,6 +442,28 @@
                     <div class="mb-2">
                         <strong>Target:</strong> 
                         <span class="text-muted">Redroid (ADB:5555)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Keyboard Passthrough</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control form-control-sm" placeholder="Type text..."
+                               @bind="keyboardText" @bind:event="oninput"
+                               @onkeydown="HandleKeyboardKeyDown" disabled="@(!isConnected)" />
+                        <button class="btn btn-outline-primary btn-sm" @onclick="SendText" disabled="@(!isConnected || string.IsNullOrEmpty(keyboardText))">
+                            Send
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                        <button class="btn btn-outline-secondary btn-sm" @onclick='() => PressKey("4")' disabled="@(!isConnected)" title="Back">Back</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick='() => PressKey("3")' disabled="@(!isConnected)" title="Home">Home</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick='() => PressKey("187")' disabled="@(!isConnected)" title="Recent">Recent</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick='() => PressKey("66")' disabled="@(!isConnected)" title="Enter">Enter</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick='() => PressKey("67")' disabled="@(!isConnected)" title="Backspace">Del</button>
                     </div>
                 </div>
             </div>

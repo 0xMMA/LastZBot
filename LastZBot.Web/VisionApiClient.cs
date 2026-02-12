@@ -117,6 +117,42 @@ public class VisionApiClient(HttpClient httpClient)
             return false;
         }
     }
+
+    public async Task<bool> SendTextAsync(string text, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("/api/text", new { Text = text }, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<SuccessResult>(cancellationToken);
+                return result?.Success ?? false;
+            }
+            return false;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> PressKeyAsync(string keycode, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("/api/key", new { Keycode = keycode }, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<SuccessResult>(cancellationToken);
+                return result?.Success ?? false;
+            }
+            return false;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
 }
 
 public record VisionStatus(bool Connected, string? Device, int? DeviceWidth, int? DeviceHeight);
