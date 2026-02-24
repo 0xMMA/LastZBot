@@ -13,7 +13,7 @@ var redroid = builder.AddContainer("redroid", "redroid/redroid", "14.0.0-latest"
     .WithBindMount("./docker/redroid/data", "/data")
     .WithEnvironment("redroid.gpu.mode", "software")
     .WithEnvironment("redroid.gralloc.no_hw_buffer", "1")
-    .WithEnvironment("redroid.fps", "30")
+    .WithEnvironment("redroid.fps", "15")
     .WithEnvironment("redroid.width", "720")
     .WithEnvironment("redroid.height", "1280")
     .WithEnvironment("redroid.dpi", "320");

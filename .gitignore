@@ -733,4 +733,6 @@ __pycache__/
 
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Rider,Csharp,ASPNETCore
 LastZBot.AppHost/docker/redroid/data/
+LastZBot.AppHost/docker/redroid/data*/
 docker/redroid/data/
+docker/redroid/data*/
