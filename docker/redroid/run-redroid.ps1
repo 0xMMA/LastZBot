@@ -31,7 +31,8 @@ podman run -d `
     -p 5555:5555 `
     -v "${dataPath}:/data" `
     -e ANDROID_ADB_SERVER_PORT=5555 `
-    redroid/redroid:16.0.0-latest `
+    -e "ro.setupwizard.mode=DISABLED" `
+    redroid/redroid:14.0.0_mindthegapps `
     androidboot.redroid_gpu_mode=guest
 
 if ($LASTEXITCODE -eq 0) {

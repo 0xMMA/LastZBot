@@ -1,12 +1,18 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+// Disable Aspire dashboard login token in all environments.
+// The token auth is unreliable with remote dev setups and port forwarding.
+builder.Configuration["Dashboard:Frontend:AuthMode"] = "Unsecured";
+builder.Configuration["Dashboard:Otlp:AuthMode"] = "Unsecured";
+
 // PostgreSQL for action logs and patterns
 var postgres = builder.AddPostgres("postgres")
     .WithDataVolume()
     .AddDatabase("lastzbot");
 
 // Redroid container with privileged mode for Android emulation
-var redroid = builder.AddContainer("redroid", "redroid/redroid", "14.0.0-latest")
+// Image includes MindTheGapps (real Google Play Services) built via ayasa520/redroid-script
+var redroid = builder.AddContainer("redroid", "redroid/redroid", "14.0.0_mindthegapps")
     // .WithContainerName("redroid") // Commented out to avoid name conflicts if the container wasn't cleaned up properly. Re-evaluate if fixed name is needed.
     .WithContainerRuntimeArgs("--privileged")
     .WithEndpoint(5555, 5555, name: "adb", isExternal: true)
@@ -16,7 +22,8 @@ var redroid = builder.AddContainer("redroid", "redroid/redroid", "14.0.0-latest"
     .WithEnvironment("redroid.fps", "15")
     .WithEnvironment("redroid.width", "720")
     .WithEnvironment("redroid.height", "1280")
-    .WithEnvironment("redroid.dpi", "320");
+    .WithEnvironment("redroid.dpi", "320")
+    .WithEnvironment("ro.setupwizard.mode", "DISABLED");
 
 // Bot service - coordinates automation tasks, device gateway (ADB, screenshot, tap, live stream)
 // BotService runs on the host (not in container). Aspire 9.5+ resolves container endpoint Host to
